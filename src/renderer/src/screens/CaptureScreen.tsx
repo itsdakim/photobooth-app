@@ -13,12 +13,14 @@ export default function CaptureScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
 
   const videoRef = useRef<HTMLVideoElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   const startedRef = useRef(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [flash, setFlash] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
   const [cameraReady, setCameraReady] = useState(false)
+  const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null)
 
   const totalShots = activeLayout?.slots.length ?? 3
   const countdownSeconds = activeEvent?.countdownSeconds ?? settings.countdownSeconds
@@ -29,6 +31,33 @@ export default function CaptureScreen(): JSX.Element {
   // stretching once it's composited into the layout.
   const targetSlot = activeLayout?.slots[Math.min(capturedPhotos.length, totalShots - 1)]
   const slotAspectRatio = targetSlot ? targetSlot.width / targetSlot.height : 4 / 3
+
+  // Recompute the frame's pixel size whenever the stage resizes for any
+  // reason (including the window itself being resized), so the preview
+  // always fills as much of the available space as it can while staying
+  // locked to the slot's aspect ratio.
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+
+    function recompute(): void {
+      const stageEl = stageRef.current
+      if (!stageEl) return
+      const { width: stageW, height: stageH } = stageEl.getBoundingClientRect()
+      if (stageW === 0 || stageH === 0) return
+      const stageRatio = stageW / stageH
+      if (slotAspectRatio > stageRatio) {
+        setFrameSize({ width: stageW, height: stageW / slotAspectRatio })
+      } else {
+        setFrameSize({ width: stageH * slotAspectRatio, height: stageH })
+      }
+    }
+
+    recompute()
+    const observer = new ResizeObserver(recompute)
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [slotAspectRatio])
 
   useEffect(() => {
     if (!activeEvent || !activeLayout) {
@@ -118,7 +147,7 @@ export default function CaptureScreen(): JSX.Element {
         Photo {currentShotNumber} of {totalShots}
       </div>
 
-      <div className="capture-stage">
+      <div className="capture-stage" ref={stageRef}>
         {error ? (
           <div style={{ textAlign: 'center', color: '#fff', padding: 24 }}>
             <p>{error}</p>
@@ -127,7 +156,14 @@ export default function CaptureScreen(): JSX.Element {
             </button>
           </div>
         ) : (
-          <div className="capture-video-frame" style={{ aspectRatio: slotAspectRatio }}>
+          <div
+            className="capture-video-frame"
+            style={
+              frameSize
+                ? { width: frameSize.width, height: frameSize.height }
+                : { aspectRatio: slotAspectRatio }
+            }
+          >
             {!cameraReady && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: '#8B887F' }}>
                 <IconCamera size={40} strokeWidth={1.4} />
