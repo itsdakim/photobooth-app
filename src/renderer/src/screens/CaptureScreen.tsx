@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { playShutterSound } from '../lib/sound'
+import { IconCamera } from '../components/Icon'
 
 export default function CaptureScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
@@ -16,9 +17,11 @@ export default function CaptureScreen(): JSX.Element {
   const [flash, setFlash] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
+  const [cameraReady, setCameraReady] = useState(false)
 
   const totalShots = activeLayout?.slots.length ?? 3
   const countdownSeconds = activeEvent?.countdownSeconds ?? settings.countdownSeconds
+  const currentShotNumber = Math.min(capturedPhotos.length + 1, totalShots)
 
   useEffect(() => {
     if (!activeEvent || !activeLayout) {
@@ -37,6 +40,7 @@ export default function CaptureScreen(): JSX.Element {
           audio: false
         })
         if (videoRef.current) videoRef.current.srcObject = stream
+        setCameraReady(true)
       } catch (err) {
         setError(
           'Could not access a camera. Check that a webcam is connected and permission is granted.'
@@ -88,6 +92,37 @@ export default function CaptureScreen(): JSX.Element {
 
   return (
     <div className="screen capture">
+      <div className="capture-pill">
+        Photo {currentShotNumber} of {totalShots}
+      </div>
+
+      <div className="capture-stage">
+        {error ? (
+          <div style={{ textAlign: 'center', color: '#fff', padding: 24 }}>
+            <p>{error}</p>
+            <button className="btn secondary" onClick={() => setScreen('attract')}>
+              ← Back
+            </button>
+          </div>
+        ) : (
+          <>
+            {!cameraReady && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: '#8B887F' }}>
+                <IconCamera size={40} strokeWidth={1.4} />
+                <div style={{ fontSize: 13, letterSpacing: '0.03em' }}>Live Camera Preview</div>
+              </div>
+            )}
+            <video ref={videoRef} autoPlay playsInline muted style={{ display: cameraReady ? 'block' : 'none' }} />
+            {countdown !== null && (
+              <div className="countdown-overlay">
+                <div className="countdown-badge">{countdown}</div>
+              </div>
+            )}
+            {flash && <div className="flash" />}
+          </>
+        )}
+      </div>
+
       <div className="shot-indicator">
         {Array.from({ length: totalShots }).map((_, i) => {
           const state =
@@ -96,36 +131,15 @@ export default function CaptureScreen(): JSX.Element {
         })}
       </div>
 
-      {error ? (
-        <div style={{ textAlign: 'center' }}>
-          <p>{error}</p>
+      {!error && !running && capturedPhotos.length === 0 && (
+        <div style={{ display: 'flex', gap: 16 }}>
           <button className="btn secondary" onClick={() => setScreen('attract')}>
-            ← Back
+            Cancel
+          </button>
+          <button className="btn primary" onClick={runSequence}>
+            Start Countdown
           </button>
         </div>
-      ) : (
-        <>
-          <video ref={videoRef} autoPlay playsInline muted />
-          {countdown !== null && <div className="countdown-overlay">{countdown}</div>}
-          {flash && <div className="flash" />}
-          {!running && capturedPhotos.length === 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 40,
-                display: 'flex',
-                gap: 16
-              }}
-            >
-              <button className="btn secondary" onClick={() => setScreen('attract')}>
-                Cancel
-              </button>
-              <button className="btn primary" onClick={runSequence}>
-                Start Countdown
-              </button>
-            </div>
-          )}
-        </>
       )}
     </div>
   )

@@ -3,6 +3,7 @@ import { useAppStore } from '../state/useAppStore'
 import { createBlankLayout } from '../lib/defaultLayouts'
 import { PAPER_SIZES } from '@shared/types'
 import type { LayoutTemplate } from '@shared/types'
+import { IconChevronLeft, IconPlus } from '../components/Icon'
 
 export default function SettingsScreen(): JSX.Element {
   const settings = useAppStore((s) => s.settings)
@@ -57,14 +58,29 @@ export default function SettingsScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen('home')}>
-          ← Home
+        <button className="btn icon-btn back-btn" onClick={() => setScreen('home')}>
+          <IconChevronLeft size={18} />
         </button>
-        <h2 style={{ margin: 0 }}>Photobooth Setup</h2>
-        <div style={{ width: 100 }} />
+        <h2>Photobooth Setup</h2>
+        <div style={{ width: 36 }} />
       </div>
       <div className="content">
         <div className="settings-grid">
+          <div className="panel-section">
+            <h3>Business</h3>
+            <div className="field">
+              <label>Business Name</label>
+              <input
+                placeholder="Photobooth Name"
+                value={settings.businessName}
+                onChange={(e) => update('businessName', e.target.value)}
+              />
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+              Shown on the Home screen.
+            </p>
+          </div>
+
           <div className="panel-section">
             <h3>Camera &amp; Booth Defaults</h3>
             <div className="field">
@@ -91,9 +107,9 @@ export default function SettingsScreen(): JSX.Element {
                 onChange={(e) => update('countdownSeconds', Number(e.target.value))}
               />
             </div>
-            <p style={{ fontSize: 12, color: '#9aa0ae' }}>
-              Print copies default to 2 for photo strips and 1 for every other format, set
-              automatically per event based on the chosen layout.
+            <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+              Print copies default to 2 for photo strips and 1 for every other format, set automatically
+              per event based on the chosen layout.
             </p>
           </div>
 
@@ -105,7 +121,7 @@ export default function SettingsScreen(): JSX.Element {
                 value={settings.selectedPrinterName ?? ''}
                 onChange={(e) => update('selectedPrinterName', e.target.value || null)}
               >
-                <option value="">Select a printer…</option>
+                <option value="">Select a printer...</option>
                 {printers.map((p) => (
                   <option key={p.name} value={p.name}>
                     {p.displayName} {p.isDefault ? '(default)' : ''}
@@ -123,9 +139,9 @@ export default function SettingsScreen(): JSX.Element {
                 ))}
               </select>
             </div>
-            <p style={{ fontSize: 12, color: '#9aa0ae' }}>
-              Install the official DNP driver for your printer first, then it will appear in this list as a
-              normal system printer.
+            <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+              Install the official DNP driver for your printer first, then it will appear in this list as
+              a normal system printer.
             </p>
           </div>
 
@@ -157,7 +173,7 @@ export default function SettingsScreen(): JSX.Element {
             {layouts.map((l) => (
               <div key={l.id} className="layout-manage-row">
                 <span>
-                  {l.name} — {l.slots.length} photo{l.slots.length > 1 ? 's' : ''}
+                  {l.name} - {l.slots.length} photo{l.slots.length > 1 ? 's' : ''}
                 </span>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn ghost" onClick={() => editLayout(l)}>
@@ -170,7 +186,8 @@ export default function SettingsScreen(): JSX.Element {
               </div>
             ))}
             <button className="btn secondary" onClick={createLayout}>
-              + New Layout
+              <IconPlus size={15} />
+              New Layout
             </button>
           </div>
         </div>

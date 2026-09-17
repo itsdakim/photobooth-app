@@ -5,6 +5,7 @@ import PrintPreview from '../components/PrintPreview'
 import { createBlankLayout } from '../lib/defaultLayouts'
 import { defaultPrintQuantityForPaperSize } from '@shared/types'
 import type { PhotoboothEvent } from '@shared/types'
+import { IconChevronLeft, IconChevronRight, IconPlus, IconSliders } from '../components/Icon'
 
 const FALLBACK_EVENT: PhotoboothEvent = {
   id: '',
@@ -81,12 +82,13 @@ export default function EventSetupScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen('eventList')}>
-          ← Cancel
+        <button className="btn icon-btn back-btn" onClick={() => setScreen('eventList')}>
+          <IconChevronLeft size={18} />
         </button>
-        <h2 style={{ margin: 0 }}>Event Setup</h2>
+        <h2>Event Setup</h2>
         <button className="btn primary" disabled={!selectedLayout || saving} onClick={startPhotobooth}>
-          {saving ? 'Saving…' : 'Start Photobooth →'}
+          {saving ? 'Saving…' : 'Start Photobooth'}
+          {!saving && <IconChevronRight size={16} />}
         </button>
       </div>
       <div className="content">
@@ -118,10 +120,12 @@ export default function EventSetupScreen(): JSX.Element {
               </div>
               <div className="row">
                 <button className="btn secondary" disabled={!selectedLayout} onClick={customizeSelectedLayout}>
-                  🎨 Customize Selected
+                  <IconSliders size={15} />
+                  Customize Selected
                 </button>
                 <button className="btn secondary" onClick={createNewLayout}>
-                  + New Layout
+                  <IconPlus size={15} />
+                  New Layout
                 </button>
               </div>
             </div>
@@ -152,7 +156,7 @@ export default function EventSetupScreen(): JSX.Element {
                   }
                 />
               </div>
-              <p style={{ fontSize: 12, color: '#9aa0ae' }}>
+              <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
                 Printer and camera are configured once in Photobooth Setup and shared across all events.
               </p>
             </div>

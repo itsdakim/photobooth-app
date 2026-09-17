@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../state/useAppStore'
 import { composeLayout } from '../lib/compose'
 import type { PhotoboothSession } from '@shared/types'
+import { IconChevronRight } from '../components/Icon'
 
 export default function ReviewScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
@@ -78,9 +79,9 @@ export default function ReviewScreen(): JSX.Element {
     <div className="screen">
       <div className="topbar">
         <button className="btn secondary" onClick={retake}>
-          ↺ Retake
+          Retake
         </button>
-        <h2 style={{ margin: 0 }}>Review Your Photo</h2>
+        <h2>Review Your Photo</h2>
         <div style={{ width: 100 }} />
       </div>
       <div className="content">
@@ -92,7 +93,8 @@ export default function ReviewScreen(): JSX.Element {
             <p>Love it? Continue to choose print quantity, save a digital copy, or make a GIF.</p>
             {error && <p className="status-msg error">{error}</p>}
             <button className="btn primary" disabled={!composedImage || busy} onClick={continueToOutput}>
-              {busy ? 'Saving…' : 'Continue →'}
+              {busy ? 'Saving…' : 'Continue'}
+              {!busy && <IconChevronRight size={16} />}
             </button>
             <button className="btn secondary" onClick={retake}>
               Retake Photos

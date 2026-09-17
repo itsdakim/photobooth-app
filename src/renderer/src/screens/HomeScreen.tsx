@@ -1,21 +1,57 @@
+import { useEffect, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
+import { IconCalendar, IconChevronRight, IconSliders } from '../components/Icon'
 
 export default function HomeScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
   const activeEvent = useAppStore((s) => s.activeEvent)
+  const settings = useAppStore((s) => s.settings)
+  const [cameraReady, setCameraReady] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then((devices) => setCameraReady(devices.some((d) => d.kind === 'videoinput')))
+      .catch(() => setCameraReady(false))
+  }, [])
+
+  const printerReady = Boolean(settings.selectedPrinterName)
 
   return (
     <div className="screen home">
-      <div className="home-hero">
-        <h1>📸 Photobooth</h1>
-        <p>Set up your booth, then let guests take it from there.</p>
+      <div className="home-topbar">
+        <div className={`home-brand ${settings.businessName ? '' : 'placeholder'}`}>
+          {settings.businessName || 'Photobooth Name'}
+        </div>
+        <button className="btn primary" onClick={() => setScreen('eventList')}>
+          Start Photobooth
+          <IconChevronRight size={16} />
+        </button>
       </div>
+
+      {activeEvent && (
+        <div className="home-active-event">
+          <div>
+            <div className="eyebrow">Active Event</div>
+            <div className="title">{activeEvent.name}</div>
+            <div className="subtitle">{new Date(activeEvent.updatedAt).toLocaleDateString()}</div>
+          </div>
+          <button className="btn secondary" onClick={() => setScreen('attract')}>
+            Resume Booth
+          </button>
+        </div>
+      )}
 
       <div className="home-grid">
         <div className="home-card" onClick={() => setScreen('eventList')}>
-          <div className="home-card-icon">🎪</div>
-          <h2>Events</h2>
-          <p>Create a new event or resume one — each event keeps its own photos, layout, and branding.</p>
+          <div>
+            <div className="home-card-icon">
+              <IconCalendar size={22} strokeWidth={1.6} />
+            </div>
+            <h2>Events</h2>
+            <p>Create a new event or resume one — each keeps its own photos, layout, and branding.</p>
+          </div>
+          <IconChevronRight size={18} className="chevron" />
         </div>
         <div
           className="home-card"
@@ -24,17 +60,33 @@ export default function HomeScreen(): JSX.Element {
             setScreen('settings')
           }}
         >
-          <div className="home-card-icon">⚙</div>
-          <h2>Photobooth Setup</h2>
-          <p>Printer, camera, and layout template library — shared across all events.</p>
+          <div>
+            <div className="home-card-icon">
+              <IconSliders size={22} strokeWidth={1.6} />
+            </div>
+            <h2>Photobooth Setup</h2>
+            <p>Printer, camera, and layout template library — shared across all events.</p>
+          </div>
+          <IconChevronRight size={18} className="chevron" />
         </div>
       </div>
 
-      {activeEvent && (
-        <button className="btn primary resume-btn" onClick={() => setScreen('attract')}>
-          ▶ Resume "{activeEvent.name}"
-        </button>
-      )}
+      <div className="status-row">
+        <div className="status-item">
+          <span className="status-dot" style={{ background: cameraReady ? undefined : '#D9D5CC' }} />
+          <div>
+            <div className="caption">Camera</div>
+            <div className="value">{cameraReady === null ? 'Checking…' : cameraReady ? 'Ready' : 'Not detected'}</div>
+          </div>
+        </div>
+        <div className="status-item">
+          <span className="status-dot" style={{ background: printerReady ? undefined : '#D9D5CC' }} />
+          <div>
+            <div className="caption">Printer</div>
+            <div className="value">{printerReady ? settings.selectedPrinterName : 'Not configured'}</div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

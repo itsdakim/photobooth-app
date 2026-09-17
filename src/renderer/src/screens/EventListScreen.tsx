@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../state/useAppStore'
 import { defaultPrintQuantityForPaperSize } from '@shared/types'
 import type { PhotoboothEvent } from '@shared/types'
+import { IconChevronLeft, IconEdit, IconImage, IconPlay, IconPlus, IconTrash } from '../components/Icon'
 
 export default function EventListScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
@@ -69,12 +70,13 @@ export default function EventListScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen('home')}>
-          ← Home
+        <button className="btn icon-btn back-btn" onClick={() => setScreen('home')}>
+          <IconChevronLeft size={18} />
         </button>
-        <h2 style={{ margin: 0 }}>Events</h2>
+        <h2>Events</h2>
         <button className="btn primary" onClick={createNewEvent}>
-          + New Event
+          <IconPlus size={16} />
+          New Event
         </button>
       </div>
       <div className="content">
@@ -91,16 +93,19 @@ export default function EventListScreen(): JSX.Element {
               </div>
               <div className="event-row-actions">
                 <button className="btn primary" onClick={() => startBooth(e)}>
-                  ▶ Start Booth
+                  <IconPlay size={16} />
+                  Start Booth
                 </button>
                 <button className="btn ghost" onClick={() => viewPhotos(e)}>
-                  🖼 Photos
+                  <IconImage size={16} />
+                  Photos
                 </button>
                 <button className="btn ghost" onClick={() => editEvent(e)}>
-                  ✎ Edit
+                  <IconEdit size={16} />
+                  Edit
                 </button>
-                <button className="btn ghost" onClick={() => removeEvent(e.id)}>
-                  🗑
+                <button className="btn ghost icon-btn" onClick={() => removeEvent(e.id)}>
+                  <IconTrash size={16} />
                 </button>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { useAppStore } from '../state/useAppStore'
 import { toFileUrl } from '../lib/fileUrl'
 import { PAPER_SIZES, PRINT_DPI } from '@shared/types'
 import type { LayoutTemplate, PhotoSlot, TextElement, ImageElement } from '@shared/types'
+import { IconChevronLeft, IconTrash } from '../components/Icon'
 
 type Selected = { type: 'slot' | 'text' | 'image'; id: string } | null
 
@@ -190,8 +191,8 @@ export default function LayoutEditorScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen(returnScreen)}>
-          ← Cancel
+        <button className="btn icon-btn back-btn" onClick={() => setScreen(returnScreen)}>
+          <IconChevronLeft size={18} />
         </button>
         <input
           value={layout.name}
@@ -367,7 +368,8 @@ export default function LayoutEditorScreen(): JSX.Element {
               <div className="panel-section">
                 <h3>Selected Element</h3>
                 <button className="btn ghost" onClick={deleteSelected}>
-                  🗑 Delete
+                  <IconTrash size={15} />
+                  Delete
                 </button>
 
                 {selectedSlot && (

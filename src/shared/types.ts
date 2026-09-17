@@ -112,7 +112,8 @@ export interface PrinterInfo {
 }
 
 export interface AppSettings {
-  eventName: string
+  /** the photobooth operator's own business name, shown on the Home screen */
+  businessName: string
   defaultLayoutId: string | null
   selectedPrinterName: string | null
   paperSizeId: string
@@ -125,7 +126,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  eventName: 'My Event',
+  businessName: '',
   defaultLayoutId: null,
   selectedPrinterName: null,
   paperSizeId: '4x6',

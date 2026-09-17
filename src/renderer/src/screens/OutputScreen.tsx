@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
 import { PRINT_DPI } from '@shared/types'
+import { IconChevronLeft, IconCheck, IconDownload, IconFilm, IconPrint, IconShare } from '../components/Icon'
 
 const AUTO_RETURN_SECONDS = 120
 const PROMPT_TIMEOUT_SECONDS = 30
@@ -156,14 +157,15 @@ export default function OutputScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen('review')}>
-          ← Back
+        <button className="btn icon-btn back-btn" onClick={() => setScreen('review')}>
+          <IconChevronLeft size={18} />
         </button>
-        <h2 style={{ margin: 0 }}>Print &amp; Share</h2>
+        <h2>Print &amp; Share</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12, color: '#9aa0ae' }}>New session in {secondsLeft}s</span>
+          <span style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>New session in {secondsLeft}s</span>
           <button className="btn primary" onClick={startNewSession}>
-            New Session ✓
+            <IconCheck size={16} />
+            New Session
           </button>
         </div>
       </div>
@@ -205,7 +207,8 @@ export default function OutputScreen(): JSX.Element {
                 <button onClick={() => setQuantity((q) => Math.min(20, q + 1))}>+</button>
               </div>
               <button className="btn primary" onClick={handlePrint} disabled={printing}>
-                {printing ? 'Printing…' : `🖨 Print ${quantity}`}
+                <IconPrint size={16} />
+                {printing ? 'Printing…' : `Print ${quantity}`}
               </button>
               {!settings.selectedPrinterName && (
                 <p className="status-msg error">No printer selected — set one in Photobooth Setup.</p>
@@ -215,20 +218,23 @@ export default function OutputScreen(): JSX.Element {
             <div className="panel-section">
               <h3>Save &amp; Share</h3>
               <button className="btn secondary" onClick={handleSaveDigitalCopy}>
-                💾 Save Digital Copy
+                <IconDownload size={16} />
+                Save Digital Copy
               </button>
               <button className="btn secondary" onClick={handleBuildGif} disabled={gifBusy}>
-                {gifBusy ? 'Building GIF…' : '🎞 Create GIF'}
+                <IconFilm size={16} />
+                {gifBusy ? 'Building GIF…' : 'Create GIF'}
               </button>
               <button className="btn secondary" onClick={handleShare}>
-                📲 Share via QR Code
+                <IconShare size={16} />
+                Share via QR Code
               </button>
               {qrDataUrl && (
                 <div style={{ textAlign: 'center' }}>
                   <div className="qr-box">
                     <img src={qrDataUrl} alt="QR code" width={200} height={200} />
                   </div>
-                  <p style={{ fontSize: 12, color: '#9aa0ae', wordBreak: 'break-all' }}>{shareUrl}</p>
+                  <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', wordBreak: 'break-all' }}>{shareUrl}</p>
                 </div>
               )}
             </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { toFileUrl } from '../lib/fileUrl'
 import type { PhotoboothSession } from '@shared/types'
+import { IconCheck, IconChevronLeft, IconTrash } from '../components/Icon'
 
 export default function GalleryScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
@@ -63,14 +64,15 @@ export default function GalleryScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen('eventList')}>
-          ← Events
+        <button className="btn icon-btn back-btn" onClick={() => setScreen('eventList')}>
+          <IconChevronLeft size={18} />
         </button>
-        <h2 style={{ margin: 0 }}>{event ? `${event.name} — Photos` : 'Photos'}</h2>
+        <h2>{event ? `${event.name} — Photos` : 'Photos'}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           {selectMode && selectedIds.size > 0 && (
             <button className="btn primary" onClick={() => setConfirmOpen(true)}>
-              🗑 Delete ({selectedIds.size})
+              <IconTrash size={15} />
+              Delete ({selectedIds.size})
             </button>
           )}
           {sessions.length > 0 && (
@@ -91,7 +93,7 @@ export default function GalleryScreen(): JSX.Element {
             >
               {selectMode && (
                 <div className={`gallery-select-badge ${selectedIds.has(s.id) ? 'checked' : ''}`}>
-                  {selectedIds.has(s.id) ? '✓' : ''}
+                  {selectedIds.has(s.id) && <IconCheck size={12} strokeWidth={3} />}
                 </div>
               )}
               {s.composedImagePath && (
