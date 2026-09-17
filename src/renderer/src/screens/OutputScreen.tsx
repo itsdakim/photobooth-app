@@ -5,6 +5,7 @@ import { buildGif } from '../lib/gifExport'
 import { PRINT_DPI } from '@shared/types'
 
 const AUTO_RETURN_SECONDS = 180
+const PROMPT_TIMEOUT_SECONDS = 30
 
 export default function OutputScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
@@ -25,6 +26,7 @@ export default function OutputScreen(): JSX.Element {
   const [status, setStatus] = useState<{ text: string; kind: 'success' | 'error' } | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(AUTO_RETURN_SECONDS)
   const [showTimeoutPrompt, setShowTimeoutPrompt] = useState(false)
+  const [promptSecondsLeft, setPromptSecondsLeft] = useState(PROMPT_TIMEOUT_SECONDS)
 
   async function handlePrint(): Promise<void> {
     if (
@@ -124,6 +126,7 @@ export default function OutputScreen(): JSX.Element {
     const interval = setInterval(() => {
       setSecondsLeft((s) => {
         if (s <= 1) {
+          setPromptSecondsLeft(PROMPT_TIMEOUT_SECONDS)
           setShowTimeoutPrompt(true)
           return 0
         }
@@ -131,6 +134,23 @@ export default function OutputScreen(): JSX.Element {
       })
     }, 1000)
     return () => clearInterval(interval)
+  }, [showTimeoutPrompt])
+
+  // While the "Still there?" prompt is up, its own countdown auto-starts a
+  // new session if nobody answers.
+  useEffect(() => {
+    if (!showTimeoutPrompt) return
+    const interval = setInterval(() => {
+      setPromptSecondsLeft((s) => {
+        if (s <= 1) {
+          startNewSession()
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTimeoutPrompt])
 
   function addMoreTime(): void {
@@ -157,7 +177,9 @@ export default function OutputScreen(): JSX.Element {
         <div className="modal-overlay">
           <div className="modal-box">
             <h3>Still there?</h3>
-            <p>This session will reset for the next guest, or you can keep going.</p>
+            <p>
+              Starting a new session in {promptSecondsLeft}s, or you can keep going.
+            </p>
             <div className="modal-actions">
               <button className="btn secondary" onClick={addMoreTime}>
                 + 3 More Minutes
