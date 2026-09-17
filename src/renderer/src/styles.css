@@ -347,25 +347,24 @@ input[type='checkbox'] {
 .capture-stage {
   flex-grow: 1;
   width: 100%;
-  border-radius: 24px;
-  background: var(--camera-surface);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 /* Locked to the target print slot's aspect ratio and maximized within the
-   stage (letterboxed on whichever axis doesn't match), so the live framing
-   is exactly what ends up in the final print — no stretching either way. */
+   stage, so the live framing is exactly what ends up in the final print —
+   no stretching. The dark camera background lives here (not on the stage)
+   so the visible box hugs the resized preview with no letterbox bars. */
 .capture-video-frame {
   position: relative;
   width: auto;
   height: auto;
   max-width: 100%;
   max-height: 100%;
+  background: var(--camera-surface);
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
