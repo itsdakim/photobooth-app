@@ -165,7 +165,7 @@ export default function EventSetupScreen(): JSX.Element {
           <div className="preview-column">
             <h3>Print Preview</h3>
             {selectedLayout ? (
-              <PrintPreview layout={selectedLayout} height={480} />
+              <PrintPreview layout={selectedLayout} maxWidth={340} maxHeight={480} />
             ) : (
               <p>Create a layout to see a preview.</p>
             )}
