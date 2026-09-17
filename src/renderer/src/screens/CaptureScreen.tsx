@@ -15,6 +15,7 @@ export default function CaptureScreen(): JSX.Element {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const startedRef = useRef(false)
+  const cancelledRef = useRef(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [flash, setFlash] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -110,18 +111,22 @@ export default function CaptureScreen(): JSX.Element {
     setRunning(true)
     for (let shot = 0; shot < totalShots; shot++) {
       for (let c = countdownSeconds; c >= 1; c--) {
+        if (cancelledRef.current) return
         setCountdown(c)
         await new Promise((r) => setTimeout(r, 1000))
       }
+      if (cancelledRef.current) return
       setCountdown(null)
       setFlash(true)
       playShutterSound()
       const dataUrl = captureFrame()
       addCapturedPhoto(dataUrl)
       await new Promise((r) => setTimeout(r, 200))
+      if (cancelledRef.current) return
       setFlash(false)
       await new Promise((r) => setTimeout(r, 600))
     }
+    if (cancelledRef.current) return
     setRunning(false)
     setScreen('review')
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,6 +142,7 @@ export default function CaptureScreen(): JSX.Element {
   }, [cameraReady, runSequence])
 
   function cancelToHome(): void {
+    cancelledRef.current = true
     resetSession()
     setScreen('home')
   }
@@ -190,7 +196,13 @@ export default function CaptureScreen(): JSX.Element {
       </div>
 
       {!error && !running && capturedPhotos.length === 0 && (
-        <button className="btn secondary" onClick={() => setScreen('attract')}>
+        <button
+          className="btn secondary"
+          onClick={() => {
+            cancelledRef.current = true
+            setScreen('attract')
+          }}
+        >
           Cancel
         </button>
       )}
