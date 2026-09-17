@@ -869,17 +869,23 @@ input[type='checkbox'] {
 .event-setup-layout {
   display: flex;
   gap: 32px;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
+  height: 100%;
 }
 .event-setup-layout .side-panel {
   width: 420px;
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 .preview-column {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 .preview-column h3 {
   font-size: 12px;
@@ -924,16 +930,17 @@ input[type='checkbox'] {
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 .print-preview-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 16px;
-  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 .print-preview-caption {
   font-size: 11px;
