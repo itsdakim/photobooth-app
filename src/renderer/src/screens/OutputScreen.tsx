@@ -4,7 +4,7 @@ import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
 import { PRINT_DPI } from '@shared/types'
 
-const AUTO_RETURN_SECONDS = 180
+const AUTO_RETURN_SECONDS = 120
 const PROMPT_TIMEOUT_SECONDS = 30
 
 export default function OutputScreen(): JSX.Element {
@@ -182,7 +182,7 @@ export default function OutputScreen(): JSX.Element {
             </p>
             <div className="modal-actions">
               <button className="btn secondary" onClick={addMoreTime}>
-                + 3 More Minutes
+                + 2 More Minutes
               </button>
               <button className="btn primary" onClick={startNewSession}>
                 Start New Session
