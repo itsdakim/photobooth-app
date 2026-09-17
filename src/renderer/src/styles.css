@@ -630,8 +630,11 @@ input[type='checkbox'] {
    ========================================================================== */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 18px;
+  /* Fixed tile width (not 1fr) so every thumbnail stays the same standard
+     size instead of stretching to fill the row — auto-fill still adds or
+     drops columns as the window is resized. */
+  grid-template-columns: repeat(auto-fill, 140px);
+  gap: 16px;
 }
 .gallery-card {
   background: var(--color-surface);
