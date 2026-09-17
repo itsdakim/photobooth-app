@@ -42,12 +42,7 @@ export default function OutputScreen(): JSX.Element {
     setPrinting(true)
     setStatus(null)
     try {
-      const composedPath = await window.api.savePhoto(
-        activeEvent.id,
-        currentSessionId,
-        composedImage,
-        'composed.png'
-      )
+      const composedPath = await window.api.saveComposedPhoto(activeEvent.id, currentSessionId, composedImage)
       const result = await window.api.printImage({
         imagePath: composedPath,
         printerName: settings.selectedPrinterName,
@@ -69,7 +64,7 @@ export default function OutputScreen(): JSX.Element {
 
   async function handleSaveDigitalCopy(): Promise<void> {
     if (!currentSessionId || !activeEvent || !composedImage) return
-    const path = await window.api.savePhoto(activeEvent.id, currentSessionId, composedImage, 'composed.png')
+    const path = await window.api.saveComposedPhoto(activeEvent.id, currentSessionId, composedImage)
     const saved = await window.api.exportCopy(path)
     if (saved) setStatus({ text: `Saved to ${saved}`, kind: 'success' })
   }
@@ -84,7 +79,7 @@ export default function OutputScreen(): JSX.Element {
         delayMs: 500
       })
       const buffer = await blob.arrayBuffer()
-      await window.api.saveGif(activeEvent.id, currentSessionId, buffer, 'session.gif')
+      await window.api.saveGif(activeEvent.id, currentSessionId, buffer)
       const url = URL.createObjectURL(blob)
       setGifDataUrl(url)
       setStatus({ text: 'GIF created!', kind: 'success' })
@@ -98,7 +93,7 @@ export default function OutputScreen(): JSX.Element {
   async function handleShare(): Promise<void> {
     if (!currentSessionId || !activeEvent) return
     const url = await window.api.startShareServer(settings.shareServerPort)
-    const target = `${url}/event/${activeEvent.id}/session/${currentSessionId}/composed.png`
+    const target = `${url}/event/${activeEvent.id}/completed/${currentSessionId}.png`
     setShareUrl(target)
     const qr = await QRCode.toDataURL(target, { width: 280, margin: 1 })
     setQrDataUrl(qr)

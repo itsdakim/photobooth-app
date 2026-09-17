@@ -31,14 +31,12 @@ const api = {
     ipcRenderer.invoke('sessions:save', session),
   deleteSession: (eventId: string, sessionId: string): Promise<boolean> =>
     ipcRenderer.invoke('sessions:delete', eventId, sessionId),
-  savePhoto: (eventId: string, sessionId: string, dataUrl: string, filename: string): Promise<string> =>
-    ipcRenderer.invoke('sessions:savePhoto', eventId, sessionId, dataUrl, filename),
-  saveGif: (
-    eventId: string,
-    sessionId: string,
-    arrayBuffer: ArrayBuffer,
-    filename: string
-  ): Promise<string> => ipcRenderer.invoke('sessions:saveGif', eventId, sessionId, arrayBuffer, filename),
+  saveRawPhoto: (eventId: string, sessionId: string, index: number, dataUrl: string): Promise<string> =>
+    ipcRenderer.invoke('sessions:saveRawPhoto', eventId, sessionId, index, dataUrl),
+  saveComposedPhoto: (eventId: string, sessionId: string, dataUrl: string): Promise<string> =>
+    ipcRenderer.invoke('sessions:saveComposedPhoto', eventId, sessionId, dataUrl),
+  saveGif: (eventId: string, sessionId: string, arrayBuffer: ArrayBuffer): Promise<string> =>
+    ipcRenderer.invoke('sessions:saveGif', eventId, sessionId, arrayBuffer),
   revealInFolder: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke('sessions:revealInFolder', filePath),
   exportCopy: (sourcePath: string): Promise<string | null> =>

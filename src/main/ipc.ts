@@ -15,7 +15,9 @@ import {
   listSessions,
   saveSession,
   deleteSession,
-  ensureEventSessionMediaDir,
+  saveComposedPhoto,
+  saveRawPhoto,
+  saveGif,
   copyAsset
 } from './storage'
 import { listPrinters, printImage } from './printer'
@@ -98,24 +100,25 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
   })
 
   ipcMain.handle(
-    'sessions:savePhoto',
-    async (_e, eventId: string, sessionId: string, dataUrl: string, filename: string) => {
-      const dir = await ensureEventSessionMediaDir(eventId, sessionId)
+    'sessions:saveRawPhoto',
+    async (_e, eventId: string, sessionId: string, index: number, dataUrl: string) => {
       const { buffer } = dataUrlToBuffer(dataUrl)
-      const filePath = path.join(dir, filename)
-      await fs.writeFile(filePath, buffer)
-      return filePath
+      return saveRawPhoto(eventId, sessionId, index, buffer)
+    }
+  )
+
+  ipcMain.handle(
+    'sessions:saveComposedPhoto',
+    async (_e, eventId: string, sessionId: string, dataUrl: string) => {
+      const { buffer } = dataUrlToBuffer(dataUrl)
+      return saveComposedPhoto(eventId, sessionId, buffer)
     }
   )
 
   ipcMain.handle(
     'sessions:saveGif',
-    async (_e, eventId: string, sessionId: string, arrayBuffer: ArrayBuffer, filename: string) => {
-      const dir = await ensureEventSessionMediaDir(eventId, sessionId)
-      const filePath = path.join(dir, filename)
-      await fs.writeFile(filePath, Buffer.from(arrayBuffer))
-      return filePath
-    }
+    async (_e, eventId: string, sessionId: string, arrayBuffer: ArrayBuffer) =>
+      saveGif(eventId, sessionId, Buffer.from(arrayBuffer))
   )
 
   ipcMain.handle('sessions:revealInFolder', async (_e, filePath: string) => {

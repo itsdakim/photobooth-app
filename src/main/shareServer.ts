@@ -14,6 +14,11 @@ const MIME: Record<string, string> = {
   '.gif': 'image/gif'
 }
 
+const KIND_DIRS: Record<string, string> = {
+  completed: 'Completed Photos',
+  gif: 'GIFs'
+}
+
 /** Starts a minimal read-only local HTTP server so guests on the venue wifi can
  *  scan a QR code and download their photo/GIF directly to their phone. */
 export function startShareServer(port: number): Promise<number> {
@@ -26,21 +31,21 @@ export function startShareServer(port: number): Promise<number> {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const parts = url.pathname.split('/').filter(Boolean)
-        // expected: /event/<eventId>/session/<sessionId>/<filename>
-        if (parts[0] !== 'event' || parts[2] !== 'session' || parts.length < 5) {
+        // expected: /event/<eventId>/<kind>/<filename>, kind is 'completed' or 'gif'
+        if (parts[0] !== 'event' || parts.length < 4) {
           res.writeHead(404)
           res.end('Not found')
           return
         }
         const eventId = parts[1]
-        const sessionId = parts[3]
-        const filename = parts.slice(4).join('/')
-        if (eventId.includes('..') || sessionId.includes('..') || filename.includes('..')) {
+        const dirName = KIND_DIRS[parts[2]]
+        const filename = parts.slice(3).join('/')
+        if (!dirName || eventId.includes('..') || filename.includes('..')) {
           res.writeHead(400)
           res.end('Bad request')
           return
         }
-        const filePath = path.join(eventsDir(), eventId, 'sessions', sessionId, filename)
+        const filePath = path.join(eventsDir(), eventId, dirName, filename)
         if (!filePath.startsWith(eventsDir())) {
           res.writeHead(400)
           res.end('Bad request')

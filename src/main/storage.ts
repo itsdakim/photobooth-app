@@ -115,19 +115,51 @@ export async function deleteEvent(id: string): Promise<void> {
 }
 
 // ---- Sessions (nested under their event) ----
+// Session metadata lives in sessions/, but the actual photo media is split
+// into three sibling folders so a photographer browsing the event folder in
+// Finder/Explorer can go straight to what they want.
 
 function eventSessionsDir(eventId: string): string {
   return path.join(eventDir(eventId), 'sessions')
 }
 
-export function eventSessionMediaDir(eventId: string, sessionId: string): string {
-  return path.join(eventSessionsDir(eventId), sessionId)
+function eventCompletedDir(eventId: string): string {
+  return path.join(eventDir(eventId), 'Completed Photos')
 }
 
-export async function ensureEventSessionMediaDir(eventId: string, sessionId: string): Promise<string> {
-  const dir = eventSessionMediaDir(eventId, sessionId)
+function eventIndividualDir(eventId: string): string {
+  return path.join(eventDir(eventId), 'Individual Photos')
+}
+
+function eventGifsDir(eventId: string): string {
+  return path.join(eventDir(eventId), 'GIFs')
+}
+
+export async function saveComposedPhoto(eventId: string, sessionId: string, buffer: Buffer): Promise<string> {
+  await ensureDir(eventCompletedDir(eventId))
+  const filePath = path.join(eventCompletedDir(eventId), `${sessionId}.png`)
+  await fs.writeFile(filePath, buffer)
+  return filePath
+}
+
+export async function saveRawPhoto(
+  eventId: string,
+  sessionId: string,
+  index: number,
+  buffer: Buffer
+): Promise<string> {
+  const dir = path.join(eventIndividualDir(eventId), sessionId)
   await ensureDir(dir)
-  return dir
+  const filePath = path.join(dir, `photo_${index}.jpg`)
+  await fs.writeFile(filePath, buffer)
+  return filePath
+}
+
+export async function saveGif(eventId: string, sessionId: string, buffer: Buffer): Promise<string> {
+  await ensureDir(eventGifsDir(eventId))
+  const filePath = path.join(eventGifsDir(eventId), `${sessionId}.gif`)
+  await fs.writeFile(filePath, buffer)
+  return filePath
 }
 
 export async function listSessions(eventId: string): Promise<PhotoboothSession[]> {
@@ -158,7 +190,9 @@ export async function saveSession(session: PhotoboothSession): Promise<void> {
 
 export async function deleteSession(eventId: string, sessionId: string): Promise<void> {
   await fs.rm(path.join(eventSessionsDir(eventId), `${sessionId}.json`), { force: true })
-  await fs.rm(eventSessionMediaDir(eventId, sessionId), { recursive: true, force: true })
+  await fs.rm(path.join(eventCompletedDir(eventId), `${sessionId}.png`), { force: true })
+  await fs.rm(path.join(eventIndividualDir(eventId), sessionId), { recursive: true, force: true })
+  await fs.rm(path.join(eventGifsDir(eventId), `${sessionId}.gif`), { force: true })
 }
 
 export async function copyAsset(sourcePath: string, filename: string): Promise<string> {

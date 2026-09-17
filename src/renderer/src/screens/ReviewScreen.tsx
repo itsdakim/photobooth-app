@@ -48,10 +48,10 @@ export default function ReviewScreen(): JSX.Element {
       const sessionId = uuid()
       const rawPaths: string[] = []
       for (let i = 0; i < capturedPhotos.length; i++) {
-        const p = await window.api.savePhoto(activeEvent.id, sessionId, capturedPhotos[i], `raw_${i + 1}.jpg`)
+        const p = await window.api.saveRawPhoto(activeEvent.id, sessionId, i + 1, capturedPhotos[i])
         rawPaths.push(p)
       }
-      const composedPath = await window.api.savePhoto(activeEvent.id, sessionId, composedImage, 'composed.png')
+      const composedPath = await window.api.saveComposedPhoto(activeEvent.id, sessionId, composedImage)
 
       const session: PhotoboothSession = {
         id: sessionId,
