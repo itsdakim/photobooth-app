@@ -156,6 +156,11 @@ export async function saveSession(session: PhotoboothSession): Promise<void> {
   )
 }
 
+export async function deleteSession(eventId: string, sessionId: string): Promise<void> {
+  await fs.rm(path.join(eventSessionsDir(eventId), `${sessionId}.json`), { force: true })
+  await fs.rm(eventSessionMediaDir(eventId, sessionId), { recursive: true, force: true })
+}
+
 export async function copyAsset(sourcePath: string, filename: string): Promise<string> {
   await ensureDir(assetsDir())
   const dest = path.join(assetsDir(), filename)

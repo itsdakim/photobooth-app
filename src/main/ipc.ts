@@ -14,6 +14,7 @@ import {
   deleteEvent,
   listSessions,
   saveSession,
+  deleteSession,
   ensureEventSessionMediaDir,
   copyAsset
 } from './storage'
@@ -89,6 +90,10 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
   ipcMain.handle('sessions:list', async (_e, eventId: string) => listSessions(eventId))
   ipcMain.handle('sessions:save', async (_e, session: PhotoboothSession) => {
     await saveSession(session)
+    return true
+  })
+  ipcMain.handle('sessions:delete', async (_e, eventId: string, sessionId: string) => {
+    await deleteSession(eventId, sessionId)
     return true
   })
 

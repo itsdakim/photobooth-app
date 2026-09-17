@@ -29,6 +29,8 @@ const api = {
     ipcRenderer.invoke('sessions:list', eventId),
   saveSession: (session: PhotoboothSession): Promise<boolean> =>
     ipcRenderer.invoke('sessions:save', session),
+  deleteSession: (eventId: string, sessionId: string): Promise<boolean> =>
+    ipcRenderer.invoke('sessions:delete', eventId, sessionId),
   savePhoto: (eventId: string, sessionId: string, dataUrl: string, filename: string): Promise<string> =>
     ipcRenderer.invoke('sessions:savePhoto', eventId, sessionId, dataUrl, filename),
   saveGif: (
