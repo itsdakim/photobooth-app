@@ -238,7 +238,6 @@ input[type='checkbox'] {
   align-items: center;
   justify-content: space-between;
   text-align: center;
-  cursor: pointer;
   position: relative;
   padding: 72px 60px;
   overflow: hidden;
