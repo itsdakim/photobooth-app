@@ -142,6 +142,23 @@ export function defaultPrintQuantityForPaperSize(paperSizeId: string): number {
   return paperSizeId === '2x6' ? 2 : 1
 }
 
+/** Strips print two-up on a larger sheet and get cut apart, so their copy
+ *  count must stay even; full-size prints (4x6 and up) allow any count. */
+export function isStripPaperSize(paperSizeId: string): boolean {
+  return paperSizeId === '2x6'
+}
+
+const MAX_PRINT_QUANTITY = 20
+
+export function clampPrintQuantity(value: number, paperSizeId: string): number {
+  const min = isStripPaperSize(paperSizeId) ? 2 : 1
+  let clamped = Math.max(min, Math.min(MAX_PRINT_QUANTITY, Math.round(value)))
+  if (isStripPaperSize(paperSizeId) && clamped % 2 !== 0) {
+    clamped = clamped + 1 <= MAX_PRINT_QUANTITY ? clamped + 1 : clamped - 1
+  }
+  return clamped
+}
+
 export interface PrintJobOptions {
   imagePath: string
   printerName: string

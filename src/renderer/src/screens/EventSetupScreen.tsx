@@ -3,7 +3,7 @@ import { useAppStore } from '../state/useAppStore'
 import LayoutThumb from '../components/LayoutThumb'
 import PrintPreview from '../components/PrintPreview'
 import { createBlankLayout } from '../lib/defaultLayouts'
-import { defaultPrintQuantityForPaperSize } from '@shared/types'
+import { clampPrintQuantity, defaultPrintQuantityForPaperSize, isStripPaperSize } from '@shared/types'
 import type { PhotoboothEvent } from '@shared/types'
 import { IconChevronLeft, IconChevronRight, IconPlus, IconSliders } from '../components/Icon'
 
@@ -147,14 +147,39 @@ export default function EventSetupScreen(): JSX.Element {
               <div className="field">
                 <label>Default print copies</label>
                 <div className="qty-stepper">
-                  <button onClick={() => setEvent((e) => ({ ...e, printQuantity: Math.max(1, e.printQuantity - 1) }))}>
+                  <button
+                    onClick={() =>
+                      setEvent((e) => ({
+                        ...e,
+                        printQuantity: clampPrintQuantity(
+                          e.printQuantity - (isStripPaperSize(e.paperSizeId) ? 2 : 1),
+                          e.paperSizeId
+                        )
+                      }))
+                    }
+                  >
                     −
                   </button>
                   <span>{event.printQuantity}</span>
-                  <button onClick={() => setEvent((e) => ({ ...e, printQuantity: Math.min(20, e.printQuantity + 1) }))}>
+                  <button
+                    onClick={() =>
+                      setEvent((e) => ({
+                        ...e,
+                        printQuantity: clampPrintQuantity(
+                          e.printQuantity + (isStripPaperSize(e.paperSizeId) ? 2 : 1),
+                          e.paperSizeId
+                        )
+                      }))
+                    }
+                  >
                     +
                   </button>
                 </div>
+                {isStripPaperSize(event.paperSizeId) && (
+                  <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+                    Strips print two-up and get cut apart, so copies must be even.
+                  </p>
+                )}
               </div>
               <div className="field">
                 <label>Countdown seconds</label>

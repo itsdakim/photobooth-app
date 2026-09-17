@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
-import { PRINT_DPI } from '@shared/types'
+import { PRINT_DPI, clampPrintQuantity, isStripPaperSize } from '@shared/types'
 import {
   IconChevronLeft,
   IconCheck,
@@ -26,7 +26,10 @@ export default function OutputScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
   const resetSession = useAppStore((s) => s.resetSession)
 
-  const [quantity, setQuantity] = useState(activeEvent?.printQuantity ?? 2)
+  const isStripLayout = isStripPaperSize(activeLayout?.paperSizeId ?? '4x6')
+  const [quantity, setQuantity] = useState(
+    clampPrintQuantity(activeEvent?.printQuantity ?? 2, activeLayout?.paperSizeId ?? '4x6')
+  )
   const [printing, setPrinting] = useState(false)
   const [gifBusy, setGifBusy] = useState(false)
   const [gifDataUrl, setGifDataUrl] = useState<string | null>(null)
@@ -215,10 +218,31 @@ export default function OutputScreen(): JSX.Element {
             <div className="panel-section">
               <h3>Print copies</h3>
               <div className="qty-stepper">
-                <button onClick={() => setQuantity((q) => Math.max(1, q - 1))}>−</button>
+                <button
+                  onClick={() =>
+                    setQuantity((q) =>
+                      clampPrintQuantity(q - (isStripLayout ? 2 : 1), activeLayout?.paperSizeId ?? '4x6')
+                    )
+                  }
+                >
+                  −
+                </button>
                 <span>{quantity}</span>
-                <button onClick={() => setQuantity((q) => Math.min(20, q + 1))}>+</button>
+                <button
+                  onClick={() =>
+                    setQuantity((q) =>
+                      clampPrintQuantity(q + (isStripLayout ? 2 : 1), activeLayout?.paperSizeId ?? '4x6')
+                    )
+                  }
+                >
+                  +
+                </button>
               </div>
+              {isStripLayout && (
+                <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+                  Strips print two-up and get cut apart, so copies must be even.
+                </p>
+              )}
               <button className="btn primary" onClick={handlePrint} disabled={printing}>
                 <IconPrint size={16} />
                 {printing ? 'Printing…' : `Print ${quantity}`}
