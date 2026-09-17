@@ -14,7 +14,7 @@ export default function AttractScreen(): JSX.Element {
   if (!activeEvent) return <div className="screen attract" />
 
   return (
-    <div className="screen attract">
+    <div className="screen attract" onClick={() => setScreen('capture')}>
       <svg className="attract-rings" viewBox="0 0 900 1500" preserveAspectRatio="xMidYMid slice">
         <circle cx="450" cy="720" r="340" fill="none" stroke="#EEEBE3" strokeWidth="1.5" />
         <circle cx="450" cy="720" r="420" fill="none" stroke="#EEEBE3" strokeWidth="1.5" />
@@ -25,9 +25,7 @@ export default function AttractScreen(): JSX.Element {
       <div className="attract-center">
         <h1>Ready?</h1>
         <p>Tap start to begin your photo experience</p>
-        <button className="btn primary tap-btn" onClick={() => setScreen('capture')}>
-          Start
-        </button>
+        <button className="btn primary tap-btn">Start</button>
       </div>
 
       <div className="attract-footer">
