@@ -8,7 +8,7 @@ export default function CaptureScreen(): JSX.Element {
   const settings = useAppStore((s) => s.settings)
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
   const addCapturedPhoto = useAppStore((s) => s.addCapturedPhoto)
-  const resetCapturedPhotos = useAppStore((s) => s.resetCapturedPhotos)
+  const resetSession = useAppStore((s) => s.resetSession)
   const setScreen = useAppStore((s) => s.setScreen)
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -25,7 +25,7 @@ export default function CaptureScreen(): JSX.Element {
       setScreen('home')
       return
     }
-    resetCapturedPhotos()
+    resetSession()
     let stream: MediaStream | null = null
 
     async function startCamera(): Promise<void> {
@@ -89,9 +89,11 @@ export default function CaptureScreen(): JSX.Element {
   return (
     <div className="screen capture">
       <div className="shot-indicator">
-        {Array.from({ length: totalShots }).map((_, i) => (
-          <div key={i} className={`shot-dot ${i < capturedPhotos.length ? 'done' : ''}`} />
-        ))}
+        {Array.from({ length: totalShots }).map((_, i) => {
+          const state =
+            i < capturedPhotos.length ? 'done' : running && i === capturedPhotos.length ? 'current' : ''
+          return <div key={i} className={`shot-dot ${state}`} />
+        })}
       </div>
 
       {error ? (

@@ -10,9 +10,10 @@ export default function ReviewScreen(): JSX.Element {
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
   const composedImage = useAppStore((s) => s.composedImage)
   const setComposedImage = useAppStore((s) => s.setComposedImage)
+  const currentSessionId = useAppStore((s) => s.currentSessionId)
   const setCurrentSessionId = useAppStore((s) => s.setCurrentSessionId)
   const setScreen = useAppStore((s) => s.setScreen)
-  const resetCapturedPhotos = useAppStore((s) => s.resetCapturedPhotos)
+  const resetSession = useAppStore((s) => s.resetSession)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,13 +30,19 @@ export default function ReviewScreen(): JSX.Element {
   }, [])
 
   function retake(): void {
-    resetCapturedPhotos()
-    setComposedImage(null)
+    resetSession()
     setScreen('capture')
   }
 
   async function continueToOutput(): Promise<void> {
     if (!activeLayout || !activeEvent || !composedImage) return
+    // Already saved this round (e.g. the guest hit Back from Print & Share and
+    // then Continue again) — reuse the existing session instead of writing a
+    // second copy of the same photos.
+    if (currentSessionId) {
+      setScreen('output')
+      return
+    }
     setBusy(true)
     try {
       const sessionId = uuid()

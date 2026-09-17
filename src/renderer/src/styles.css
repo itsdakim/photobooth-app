@@ -168,9 +168,14 @@ button {
   height: 14px;
   border-radius: 50%;
   background: #444;
+  transition: background 0.15s ease;
+}
+.shot-dot.current {
+  background: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.7);
 }
 .shot-dot.done {
-  background: #e0577c;
+  background: #e5484d;
 }
 .flash {
   position: absolute;
@@ -534,4 +539,36 @@ textarea {
   color: #9aa0ae;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* --- Modal (e.g. session timeout prompt) --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 6, 10, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.modal-box {
+  background: #1c2029;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.modal-box h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.modal-box p {
+  color: #9aa0ae;
+  margin: 0 0 24px;
+}
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }

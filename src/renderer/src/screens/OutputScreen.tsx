@@ -4,6 +4,8 @@ import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
 import { PRINT_DPI } from '@shared/types'
 
+const AUTO_RETURN_SECONDS = 180
+
 export default function OutputScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
   const activeEvent = useAppStore((s) => s.activeEvent)
@@ -21,6 +23,8 @@ export default function OutputScreen(): JSX.Element {
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [status, setStatus] = useState<{ text: string; kind: 'success' | 'error' } | null>(null)
+  const [secondsLeft, setSecondsLeft] = useState(AUTO_RETURN_SECONDS)
+  const [showTimeoutPrompt, setShowTimeoutPrompt] = useState(false)
 
   async function handlePrint(): Promise<void> {
     if (
@@ -112,6 +116,28 @@ export default function OutputScreen(): JSX.Element {
     setScreen('attract')
   }
 
+  // Runs down at a flat pace regardless of what the guest does on this page —
+  // once it hits zero, a prompt asks whether to keep going before the booth
+  // auto-resets for the next guest.
+  useEffect(() => {
+    if (showTimeoutPrompt) return
+    const interval = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          setShowTimeoutPrompt(true)
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [showTimeoutPrompt])
+
+  function addMoreTime(): void {
+    setSecondsLeft(AUTO_RETURN_SECONDS)
+    setShowTimeoutPrompt(false)
+  }
+
   return (
     <div className="screen">
       <div className="topbar">
@@ -119,10 +145,30 @@ export default function OutputScreen(): JSX.Element {
           ← Back
         </button>
         <h2 style={{ margin: 0 }}>Print &amp; Share</h2>
-        <button className="btn primary" onClick={startNewSession}>
-          New Session ✓
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 12, color: '#9aa0ae' }}>New session in {secondsLeft}s</span>
+          <button className="btn primary" onClick={startNewSession}>
+            New Session ✓
+          </button>
+        </div>
       </div>
+
+      {showTimeoutPrompt && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Still there?</h3>
+            <p>This session will reset for the next guest, or you can keep going.</p>
+            <div className="modal-actions">
+              <button className="btn secondary" onClick={addMoreTime}>
+                + 3 More Minutes
+              </button>
+              <button className="btn primary" onClick={startNewSession}>
+                Start New Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="content">
         <div className="output-layout">
           <div className="preview-frame">
