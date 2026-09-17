@@ -24,6 +24,12 @@ export default function CaptureScreen(): JSX.Element {
   const countdownSeconds = activeEvent?.countdownSeconds ?? settings.countdownSeconds
   const currentShotNumber = Math.min(capturedPhotos.length + 1, totalShots)
 
+  // Frame the live preview to the exact aspect ratio of the print slot this
+  // shot will land in, so what the guest sees matches the final crop with no
+  // stretching once it's composited into the layout.
+  const targetSlot = activeLayout?.slots[Math.min(capturedPhotos.length, totalShots - 1)]
+  const slotAspectRatio = targetSlot ? targetSlot.width / targetSlot.height : 4 / 3
+
   useEffect(() => {
     if (!activeEvent || !activeLayout) {
       setScreen('home')
@@ -121,7 +127,7 @@ export default function CaptureScreen(): JSX.Element {
             </button>
           </div>
         ) : (
-          <>
+          <div className="capture-video-frame" style={{ aspectRatio: slotAspectRatio }}>
             {!cameraReady && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: '#8B887F' }}>
                 <IconCamera size={40} strokeWidth={1.4} />
@@ -135,7 +141,7 @@ export default function CaptureScreen(): JSX.Element {
               </div>
             )}
             {flash && <div className="flash" />}
-          </>
+          </div>
         )}
       </div>
 
