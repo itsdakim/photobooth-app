@@ -107,16 +107,28 @@ export default function EventSetupScreen(): JSX.Element {
             <div className="panel-section">
               <h3>Layout &amp; Branding</h3>
               <div className="layout-pick-grid">
-                {layouts.map((l) => (
-                  <div
-                    key={l.id}
-                    className={`layout-pick-card ${l.id === event.layoutId ? 'selected' : ''}`}
-                    onClick={() => selectLayout(l.id)}
-                  >
-                    <LayoutThumb layout={l} displayHeight={110} />
-                    <span>{l.name}</span>
-                  </div>
-                ))}
+                {layouts.map((l) => {
+                  // Contain-fit within the card's thumb slot so a landscape
+                  // layout (e.g. Single Photo Horizontal) scales down to fit
+                  // instead of overflowing a height-only sizing.
+                  const slotWidth = 100
+                  const slotHeight = 100
+                  const canvasRatio = l.canvasWidth / l.canvasHeight
+                  const slotRatio = slotWidth / slotHeight
+                  const thumbHeight = canvasRatio > slotRatio ? slotWidth / canvasRatio : slotHeight
+                  return (
+                    <div
+                      key={l.id}
+                      className={`layout-pick-card ${l.id === event.layoutId ? 'selected' : ''}`}
+                      onClick={() => selectLayout(l.id)}
+                    >
+                      <div className="layout-pick-thumb-slot">
+                        <LayoutThumb layout={l} displayHeight={thumbHeight} />
+                      </div>
+                      <span>{l.name}</span>
+                    </div>
+                  )
+                })}
               </div>
               <div className="row">
                 <button className="btn secondary" disabled={!selectedLayout} onClick={customizeSelectedLayout}>
