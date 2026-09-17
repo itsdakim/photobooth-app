@@ -1,7 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { pathToFileURL } from 'url'
-import type { PaperSize, PrinterInfo, PrintJobOptions, PrintJobResult } from '@shared/types'
-import { PAPER_SIZES } from '@shared/types'
+import type { PrinterInfo, PrintJobOptions, PrintJobResult } from '@shared/types'
 
 const MICRONS_PER_INCH = 25400
 
@@ -15,18 +14,15 @@ export async function listPrinters(win: BrowserWindow): Promise<PrinterInfo[]> {
   }))
 }
 
-function findPaperSize(id: string): PaperSize {
-  return PAPER_SIZES.find((p) => p.id === id) ?? PAPER_SIZES[1]
-}
-
 /**
  * Prints an already-composed, print-ready image at native size (no scaling surprises)
- * by loading it into a hidden window sized exactly to the paper and issuing a silent
- * print job to the given DNP printer via the OS print driver.
+ * by loading it into a hidden window sized exactly to the page and issuing a silent
+ * print job to the given DNP printer via the OS print driver. The page dimensions come
+ * straight from the layout's own canvas orientation (not a fixed paper-size lookup), so
+ * a landscape layout (e.g. a horizontal 4x6) prints in the right orientation.
  */
 export async function printImage(options: PrintJobOptions): Promise<PrintJobResult> {
-  const { imagePath, printerName, paperSizeId, copies } = options
-  const paper = findPaperSize(paperSizeId)
+  const { imagePath, printerName, widthIn, heightIn, copies } = options
 
   const printWin = new BrowserWindow({
     show: false,
@@ -38,9 +34,9 @@ export async function printImage(options: PrintJobOptions): Promise<PrintJobResu
 <head>
 <meta charset="utf-8" />
 <style>
-  @page { size: ${paper.widthIn}in ${paper.heightIn}in; margin: 0; }
+  @page { size: ${widthIn}in ${heightIn}in; margin: 0; }
   html, body { margin: 0; padding: 0; }
-  img { display: block; width: ${paper.widthIn}in; height: ${paper.heightIn}in; object-fit: cover; }
+  img { display: block; width: ${widthIn}in; height: ${heightIn}in; object-fit: cover; }
 </style>
 </head>
 <body>
@@ -60,8 +56,8 @@ export async function printImage(options: PrintJobOptions): Promise<PrintJobResu
           copies: Math.max(1, Math.min(99, copies)),
           margins: { marginType: 'none' },
           pageSize: {
-            width: Math.round(paper.widthIn * MICRONS_PER_INCH),
-            height: Math.round(paper.heightIn * MICRONS_PER_INCH)
+            width: Math.round(widthIn * MICRONS_PER_INCH),
+            height: Math.round(heightIn * MICRONS_PER_INCH)
           }
         },
         (success, errorType) => {
@@ -75,9 +71,4 @@ export async function printImage(options: PrintJobOptions): Promise<PrintJobResu
   } finally {
     if (!printWin.isDestroyed()) printWin.destroy()
   }
-}
-
-export function getAllWebContentsPrinterCapableWindow(): BrowserWindow | null {
-  const wins = BrowserWindow.getAllWindows()
-  return wins.length > 0 ? wins[0] : null
 }

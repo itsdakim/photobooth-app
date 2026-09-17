@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
+import { playShutterSound } from '../lib/sound'
 
 export default function CaptureScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
+  const activeEvent = useAppStore((s) => s.activeEvent)
   const settings = useAppStore((s) => s.settings)
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
   const addCapturedPhoto = useAppStore((s) => s.addCapturedPhoto)
@@ -15,9 +17,14 @@ export default function CaptureScreen(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
 
-  const totalShots = activeLayout?.slots.length ?? settings.shotsPerSession
+  const totalShots = activeLayout?.slots.length ?? 3
+  const countdownSeconds = activeEvent?.countdownSeconds ?? settings.countdownSeconds
 
   useEffect(() => {
+    if (!activeEvent || !activeLayout) {
+      setScreen('home')
+      return
+    }
     resetCapturedPhotos()
     let stream: MediaStream | null = null
 
@@ -62,12 +69,13 @@ export default function CaptureScreen(): JSX.Element {
   async function runSequence(): Promise<void> {
     setRunning(true)
     for (let shot = 0; shot < totalShots; shot++) {
-      for (let c = settings.countdownSeconds; c >= 1; c--) {
+      for (let c = countdownSeconds; c >= 1; c--) {
         setCountdown(c)
         await new Promise((r) => setTimeout(r, 1000))
       }
       setCountdown(null)
       setFlash(true)
+      playShutterSound()
       const dataUrl = captureFrame()
       addCapturedPhoto(dataUrl)
       await new Promise((r) => setTimeout(r, 200))
@@ -89,7 +97,7 @@ export default function CaptureScreen(): JSX.Element {
       {error ? (
         <div style={{ textAlign: 'center' }}>
           <p>{error}</p>
-          <button className="btn secondary" onClick={() => setScreen('layoutSelect')}>
+          <button className="btn secondary" onClick={() => setScreen('attract')}>
             ← Back
           </button>
         </div>
@@ -107,7 +115,7 @@ export default function CaptureScreen(): JSX.Element {
                 gap: 16
               }}
             >
-              <button className="btn secondary" onClick={() => setScreen('layoutSelect')}>
+              <button className="btn secondary" onClick={() => setScreen('attract')}>
                 Cancel
               </button>
               <button className="btn primary" onClick={runSequence}>

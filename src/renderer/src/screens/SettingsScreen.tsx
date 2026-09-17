@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../state/useAppStore'
-import { PAPER_SIZES, PRINT_DPI } from '@shared/types'
+import { createBlankLayout } from '../lib/defaultLayouts'
+import { PAPER_SIZES } from '@shared/types'
 import type { LayoutTemplate } from '@shared/types'
 
 export default function SettingsScreen(): JSX.Element {
@@ -37,39 +37,15 @@ export default function SettingsScreen(): JSX.Element {
   }
 
   async function createLayout(): Promise<void> {
-    const timestamp = new Date().toISOString()
-    const paper = PAPER_SIZES.find((p) => p.id === settings.paperSizeId) ?? PAPER_SIZES[1]
-    const newLayout: LayoutTemplate = {
-      id: uuid(),
-      name: 'New Layout',
-      paperSizeId: paper.id,
-      canvasWidth: Math.round(paper.widthIn * PRINT_DPI),
-      canvasHeight: Math.round(paper.heightIn * PRINT_DPI),
-      backgroundColor: '#ffffff',
-      backgroundImage: null,
-      slots: [
-        {
-          id: uuid(),
-          x: Math.round(0.25 * PRINT_DPI),
-          y: Math.round(0.25 * PRINT_DPI),
-          width: Math.round((paper.widthIn - 0.5) * PRINT_DPI),
-          height: Math.round((paper.heightIn - 1) * PRINT_DPI),
-          rotation: 0
-        }
-      ],
-      textElements: [],
-      imageElements: [],
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }
+    const newLayout: LayoutTemplate = createBlankLayout(settings.paperSizeId)
     await window.api.saveLayout(newLayout)
     setLayouts(await window.api.listLayouts())
-    setEditingLayout(newLayout)
+    setEditingLayout(newLayout, 'settings')
     setScreen('layoutEditor')
   }
 
-  async function editLayout(layout: LayoutTemplate): Promise<void> {
-    setEditingLayout(layout)
+  function editLayout(layout: LayoutTemplate): void {
+    setEditingLayout(layout, 'settings')
     setScreen('layoutEditor')
   }
 
@@ -81,42 +57,16 @@ export default function SettingsScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen('attract')}>
-          ← Back
+        <button className="btn secondary" onClick={() => setScreen('home')}>
+          ← Home
         </button>
-        <h2 style={{ margin: 0 }}>Settings</h2>
-        <button className="btn ghost" onClick={() => setScreen('gallery')}>
-          🖼 Past Sessions
-        </button>
+        <h2 style={{ margin: 0 }}>Photobooth Setup</h2>
+        <div style={{ width: 100 }} />
       </div>
       <div className="content">
         <div className="settings-grid">
           <div className="panel-section">
-            <h3>Event</h3>
-            <div className="field">
-              <label>Event Name</label>
-              <input value={settings.eventName} onChange={(e) => update('eventName', e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Shots per session (used when a layout defines none)</label>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                value={settings.shotsPerSession}
-                onChange={(e) => update('shotsPerSession', Number(e.target.value))}
-              />
-            </div>
-            <div className="field">
-              <label>Countdown seconds</label>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                value={settings.countdownSeconds}
-                onChange={(e) => update('countdownSeconds', Number(e.target.value))}
-              />
-            </div>
+            <h3>Camera &amp; Booth Defaults</h3>
             <div className="field">
               <label>Camera</label>
               <select
@@ -131,6 +81,20 @@ export default function SettingsScreen(): JSX.Element {
                 ))}
               </select>
             </div>
+            <div className="field">
+              <label>Default countdown seconds (for new events)</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={settings.countdownSeconds}
+                onChange={(e) => update('countdownSeconds', Number(e.target.value))}
+              />
+            </div>
+            <p style={{ fontSize: 12, color: '#9aa0ae' }}>
+              Print copies default to 2 for photo strips and 1 for every other format, set
+              automatically per event based on the chosen layout.
+            </p>
           </div>
 
           <div className="panel-section">
@@ -150,7 +114,7 @@ export default function SettingsScreen(): JSX.Element {
               </select>
             </div>
             <div className="field">
-              <label>Default paper size</label>
+              <label>Default paper size (for new layouts)</label>
               <select value={settings.paperSizeId} onChange={(e) => update('paperSizeId', e.target.value)}>
                 {PAPER_SIZES.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -158,16 +122,6 @@ export default function SettingsScreen(): JSX.Element {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="field">
-              <label>Default print quantity</label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={settings.defaultPrintQuantity}
-                onChange={(e) => update('defaultPrintQuantity', Number(e.target.value))}
-              />
             </div>
             <p style={{ fontSize: 12, color: '#9aa0ae' }}>
               Install the official DNP driver for your printer first, then it will appear in this list as a
@@ -199,7 +153,7 @@ export default function SettingsScreen(): JSX.Element {
           </div>
 
           <div className="panel-section" style={{ gridColumn: '1 / -1' }}>
-            <h3>Layouts</h3>
+            <h3>Layout Template Library</h3>
             {layouts.map((l) => (
               <div key={l.id} className="layout-manage-row">
                 <span>

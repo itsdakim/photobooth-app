@@ -72,8 +72,26 @@ export interface LayoutTemplate {
   updatedAt: string
 }
 
+/**
+ * An Event is the top-level container a photographer sets up once per gig
+ * (wedding, party, corporate function). It pins down the branding/layout and
+ * booth defaults for every guest session that happens under it, and its id
+ * is the folder every one of those sessions' photos gets saved into.
+ */
+export interface PhotoboothEvent {
+  id: string
+  name: string
+  layoutId: string
+  paperSizeId: string
+  printQuantity: number
+  countdownSeconds: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface PhotoboothSession {
   id: string
+  eventId: string
   layoutId: string
   eventName: string
   createdAt: string
@@ -98,7 +116,7 @@ export interface AppSettings {
   defaultLayoutId: string | null
   selectedPrinterName: string | null
   paperSizeId: string
-  defaultPrintQuantity: number
+  /** default countdown (seconds) applied to newly created events */
   countdownSeconds: number
   shotsPerSession: number
   cameraDeviceId: string | null
@@ -111,18 +129,26 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultLayoutId: null,
   selectedPrinterName: null,
   paperSizeId: '4x6',
-  defaultPrintQuantity: 1,
-  countdownSeconds: 3,
+  countdownSeconds: 5,
   shotsPerSession: 3,
   cameraDeviceId: null,
   shareServerEnabled: true,
   shareServerPort: 8850
 }
 
+/** Photo strips (2x6) default to 2 copies; every other format defaults to 1. */
+export function defaultPrintQuantityForPaperSize(paperSizeId: string): number {
+  return paperSizeId === '2x6' ? 2 : 1
+}
+
 export interface PrintJobOptions {
   imagePath: string
   printerName: string
-  paperSizeId: string
+  /** actual page dimensions to print at, in inches — taken from the layout's
+   *  own canvas so landscape layouts (e.g. a horizontal 4x6) print correctly
+   *  instead of being forced into the paper size's default orientation */
+  widthIn: number
+  heightIn: number
   copies: number
 }
 

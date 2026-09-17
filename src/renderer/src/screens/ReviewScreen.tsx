@@ -6,11 +6,11 @@ import type { PhotoboothSession } from '@shared/types'
 
 export default function ReviewScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
+  const activeEvent = useAppStore((s) => s.activeEvent)
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
   const composedImage = useAppStore((s) => s.composedImage)
   const setComposedImage = useAppStore((s) => s.setComposedImage)
   const setCurrentSessionId = useAppStore((s) => s.setCurrentSessionId)
-  const settings = useAppStore((s) => s.settings)
   const setScreen = useAppStore((s) => s.setScreen)
   const resetCapturedPhotos = useAppStore((s) => s.resetCapturedPhotos)
 
@@ -18,8 +18,8 @@ export default function ReviewScreen(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!activeLayout) {
-      setScreen('layoutSelect')
+    if (!activeLayout || !activeEvent) {
+      setScreen('home')
       return
     }
     composeLayout(activeLayout, capturedPhotos)
@@ -35,21 +35,22 @@ export default function ReviewScreen(): JSX.Element {
   }
 
   async function continueToOutput(): Promise<void> {
-    if (!activeLayout || !composedImage) return
+    if (!activeLayout || !activeEvent || !composedImage) return
     setBusy(true)
     try {
       const sessionId = uuid()
       const rawPaths: string[] = []
       for (let i = 0; i < capturedPhotos.length; i++) {
-        const p = await window.api.savePhoto(sessionId, capturedPhotos[i], `raw_${i + 1}.jpg`)
+        const p = await window.api.savePhoto(activeEvent.id, sessionId, capturedPhotos[i], `raw_${i + 1}.jpg`)
         rawPaths.push(p)
       }
-      const composedPath = await window.api.savePhoto(sessionId, composedImage, 'composed.png')
+      const composedPath = await window.api.savePhoto(activeEvent.id, sessionId, composedImage, 'composed.png')
 
       const session: PhotoboothSession = {
         id: sessionId,
+        eventId: activeEvent.id,
         layoutId: activeLayout.id,
-        eventName: settings.eventName,
+        eventName: activeEvent.name,
         createdAt: new Date().toISOString(),
         rawPhotoPaths: rawPaths,
         composedImagePath: composedPath,

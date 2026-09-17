@@ -20,6 +20,7 @@ export default function LayoutEditorScreen(): JSX.Element {
   const storeLayout = useAppStore((s) => s.editingLayout)
   const setLayouts = useAppStore((s) => s.setLayouts)
   const setScreen = useAppStore((s) => s.setScreen)
+  const returnScreen = useAppStore((s) => s.layoutEditorReturnScreen)
 
   const [layout, setLayout] = useState<LayoutTemplate>(
     storeLayout ?? {
@@ -177,7 +178,7 @@ export default function LayoutEditorScreen(): JSX.Element {
   async function save(): Promise<void> {
     await window.api.saveLayout(layout)
     setLayouts(await window.api.listLayouts())
-    setScreen('settings')
+    setScreen(returnScreen)
   }
 
   const selectedSlot = selected?.type === 'slot' ? layout.slots.find((s) => s.id === selected.id) : null
@@ -189,7 +190,7 @@ export default function LayoutEditorScreen(): JSX.Element {
   return (
     <div className="screen">
       <div className="topbar">
-        <button className="btn secondary" onClick={() => setScreen('settings')}>
+        <button className="btn secondary" onClick={() => setScreen(returnScreen)}>
           ← Cancel
         </button>
         <input

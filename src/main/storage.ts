@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
-import type { AppSettings, LayoutTemplate, PhotoboothSession } from '@shared/types'
+import type { AppSettings, LayoutTemplate, PhotoboothEvent, PhotoboothSession } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/types'
 
 function dataRoot(): string {
@@ -12,8 +12,8 @@ export function layoutsDir(): string {
   return path.join(dataRoot(), 'layouts')
 }
 
-export function sessionsDir(): string {
-  return path.join(dataRoot(), 'sessions')
+export function eventsDir(): string {
+  return path.join(dataRoot(), 'events')
 }
 
 export function assetsDir(): string {
@@ -28,7 +28,7 @@ async function ensureDir(dir: string): Promise<void> {
 
 export async function initStorage(): Promise<void> {
   await ensureDir(layoutsDir())
-  await ensureDir(sessionsDir())
+  await ensureDir(eventsDir())
   await ensureDir(assetsDir())
   try {
     await fs.access(settingsFile())
@@ -76,8 +76,62 @@ export async function deleteLayout(id: string): Promise<void> {
   await fs.rm(path.join(layoutsDir(), `${id}.json`), { force: true })
 }
 
-export async function listSessions(): Promise<PhotoboothSession[]> {
-  const dir = sessionsDir()
+// ---- Events ----
+// Each event owns a folder (events/<eventId>/) that holds its metadata plus
+// every guest session's photos underneath it, so a whole gig's output stays
+// together on disk.
+
+function eventDir(eventId: string): string {
+  return path.join(eventsDir(), eventId)
+}
+
+function eventFile(eventId: string): string {
+  return path.join(eventDir(eventId), 'event.json')
+}
+
+export async function listEvents(): Promise<PhotoboothEvent[]> {
+  const dir = eventsDir()
+  const ids = await fs.readdir(dir).catch(() => [])
+  const events: PhotoboothEvent[] = []
+  for (const id of ids) {
+    try {
+      const raw = await fs.readFile(eventFile(id), 'utf-8')
+      events.push(JSON.parse(raw))
+    } catch {
+      // skip corrupt/non-event entries
+    }
+  }
+  events.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  return events
+}
+
+export async function saveEvent(event: PhotoboothEvent): Promise<void> {
+  await ensureDir(eventDir(event.id))
+  await fs.writeFile(eventFile(event.id), JSON.stringify(event, null, 2), 'utf-8')
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  await fs.rm(eventDir(id), { recursive: true, force: true })
+}
+
+// ---- Sessions (nested under their event) ----
+
+function eventSessionsDir(eventId: string): string {
+  return path.join(eventDir(eventId), 'sessions')
+}
+
+export function eventSessionMediaDir(eventId: string, sessionId: string): string {
+  return path.join(eventSessionsDir(eventId), sessionId)
+}
+
+export async function ensureEventSessionMediaDir(eventId: string, sessionId: string): Promise<string> {
+  const dir = eventSessionMediaDir(eventId, sessionId)
+  await ensureDir(dir)
+  return dir
+}
+
+export async function listSessions(eventId: string): Promise<PhotoboothSession[]> {
+  const dir = eventSessionsDir(eventId)
   const files = await fs.readdir(dir).catch(() => [])
   const sessions: PhotoboothSession[] = []
   for (const file of files) {
@@ -94,22 +148,12 @@ export async function listSessions(): Promise<PhotoboothSession[]> {
 }
 
 export async function saveSession(session: PhotoboothSession): Promise<void> {
-  await ensureDir(sessionsDir())
+  await ensureDir(eventSessionsDir(session.eventId))
   await fs.writeFile(
-    path.join(sessionsDir(), `${session.id}.json`),
+    path.join(eventSessionsDir(session.eventId), `${session.id}.json`),
     JSON.stringify(session, null, 2),
     'utf-8'
   )
-}
-
-export function sessionMediaDir(sessionId: string): string {
-  return path.join(sessionsDir(), sessionId)
-}
-
-export async function ensureSessionMediaDir(sessionId: string): Promise<string> {
-  const dir = sessionMediaDir(sessionId)
-  await ensureDir(dir)
-  return dir
 }
 
 export async function copyAsset(sourcePath: string, filename: string): Promise<string> {

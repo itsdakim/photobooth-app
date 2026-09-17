@@ -9,14 +9,23 @@ import {
   listLayouts,
   saveLayout,
   deleteLayout,
+  listEvents,
+  saveEvent,
+  deleteEvent,
   listSessions,
   saveSession,
-  ensureSessionMediaDir,
+  ensureEventSessionMediaDir,
   copyAsset
 } from './storage'
 import { listPrinters, printImage } from './printer'
 import { startShareServer, stopShareServer, getLocalNetworkUrl } from './shareServer'
-import type { AppSettings, LayoutTemplate, PhotoboothSession, PrintJobOptions } from '@shared/types'
+import type {
+  AppSettings,
+  LayoutTemplate,
+  PhotoboothEvent,
+  PhotoboothSession,
+  PrintJobOptions
+} from '@shared/types'
 
 function dataUrlToBuffer(dataUrl: string): { buffer: Buffer; ext: string } {
   const match = /^data:image\/(png|jpeg|jpg|gif);base64,(.+)$/.exec(dataUrl)
@@ -65,8 +74,19 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
     return dest
   })
 
+  // ---- Events ----
+  ipcMain.handle('events:list', async () => listEvents())
+  ipcMain.handle('events:save', async (_e, event: PhotoboothEvent) => {
+    await saveEvent(event)
+    return true
+  })
+  ipcMain.handle('events:delete', async (_e, id: string) => {
+    await deleteEvent(id)
+    return true
+  })
+
   // ---- Sessions ----
-  ipcMain.handle('sessions:list', async () => listSessions())
+  ipcMain.handle('sessions:list', async (_e, eventId: string) => listSessions(eventId))
   ipcMain.handle('sessions:save', async (_e, session: PhotoboothSession) => {
     await saveSession(session)
     return true
@@ -74,8 +94,8 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
 
   ipcMain.handle(
     'sessions:savePhoto',
-    async (_e, sessionId: string, dataUrl: string, filename: string) => {
-      const dir = await ensureSessionMediaDir(sessionId)
+    async (_e, eventId: string, sessionId: string, dataUrl: string, filename: string) => {
+      const dir = await ensureEventSessionMediaDir(eventId, sessionId)
       const { buffer } = dataUrlToBuffer(dataUrl)
       const filePath = path.join(dir, filename)
       await fs.writeFile(filePath, buffer)
@@ -85,8 +105,8 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
 
   ipcMain.handle(
     'sessions:saveGif',
-    async (_e, sessionId: string, arrayBuffer: ArrayBuffer, filename: string) => {
-      const dir = await ensureSessionMediaDir(sessionId)
+    async (_e, eventId: string, sessionId: string, arrayBuffer: ArrayBuffer, filename: string) => {
+      const dir = await ensureEventSessionMediaDir(eventId, sessionId)
       const filePath = path.join(dir, filename)
       await fs.writeFile(filePath, Buffer.from(arrayBuffer))
       return filePath

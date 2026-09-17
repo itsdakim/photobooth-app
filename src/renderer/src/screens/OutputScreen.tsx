@@ -2,18 +2,19 @@ import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
+import { PRINT_DPI } from '@shared/types'
 
 export default function OutputScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
+  const activeEvent = useAppStore((s) => s.activeEvent)
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
   const composedImage = useAppStore((s) => s.composedImage)
   const currentSessionId = useAppStore((s) => s.currentSessionId)
   const settings = useAppStore((s) => s.settings)
   const setScreen = useAppStore((s) => s.setScreen)
   const resetSession = useAppStore((s) => s.resetSession)
-  const resetCapturedPhotos = useAppStore((s) => s.resetCapturedPhotos)
 
-  const [quantity, setQuantity] = useState(settings.defaultPrintQuantity)
+  const [quantity, setQuantity] = useState(activeEvent?.printQuantity ?? 2)
   const [printing, setPrinting] = useState(false)
   const [gifBusy, setGifBusy] = useState(false)
   const [gifDataUrl, setGifDataUrl] = useState<string | null>(null)
@@ -22,18 +23,30 @@ export default function OutputScreen(): JSX.Element {
   const [status, setStatus] = useState<{ text: string; kind: 'success' | 'error' } | null>(null)
 
   async function handlePrint(): Promise<void> {
-    if (!composedImage || !currentSessionId || !settings.selectedPrinterName || !activeLayout) {
-      setStatus({ text: 'Select a printer in Settings first.', kind: 'error' })
+    if (
+      !composedImage ||
+      !currentSessionId ||
+      !activeEvent ||
+      !settings.selectedPrinterName ||
+      !activeLayout
+    ) {
+      setStatus({ text: 'Select a printer in Photobooth Setup first.', kind: 'error' })
       return
     }
     setPrinting(true)
     setStatus(null)
     try {
-      const composedPath = await window.api.savePhoto(currentSessionId, composedImage, 'composed.png')
+      const composedPath = await window.api.savePhoto(
+        activeEvent.id,
+        currentSessionId,
+        composedImage,
+        'composed.png'
+      )
       const result = await window.api.printImage({
         imagePath: composedPath,
         printerName: settings.selectedPrinterName,
-        paperSizeId: activeLayout.paperSizeId,
+        widthIn: activeLayout.canvasWidth / PRINT_DPI,
+        heightIn: activeLayout.canvasHeight / PRINT_DPI,
         copies: quantity
       })
       if (result.success) {
@@ -49,14 +62,14 @@ export default function OutputScreen(): JSX.Element {
   }
 
   async function handleSaveDigitalCopy(): Promise<void> {
-    if (!currentSessionId || !composedImage) return
-    const path = await window.api.savePhoto(currentSessionId, composedImage, 'composed.png')
+    if (!currentSessionId || !activeEvent || !composedImage) return
+    const path = await window.api.savePhoto(activeEvent.id, currentSessionId, composedImage, 'composed.png')
     const saved = await window.api.exportCopy(path)
     if (saved) setStatus({ text: `Saved to ${saved}`, kind: 'success' })
   }
 
   async function handleBuildGif(): Promise<void> {
-    if (!currentSessionId || !activeLayout || capturedPhotos.length < 2) return
+    if (!currentSessionId || !activeEvent || !activeLayout || capturedPhotos.length < 2) return
     setGifBusy(true)
     try {
       const blob = await buildGif(capturedPhotos, {
@@ -65,7 +78,7 @@ export default function OutputScreen(): JSX.Element {
         delayMs: 500
       })
       const buffer = await blob.arrayBuffer()
-      await window.api.saveGif(currentSessionId, buffer, 'session.gif')
+      await window.api.saveGif(activeEvent.id, currentSessionId, buffer, 'session.gif')
       const url = URL.createObjectURL(blob)
       setGifDataUrl(url)
       setStatus({ text: 'GIF created!', kind: 'success' })
@@ -77,9 +90,9 @@ export default function OutputScreen(): JSX.Element {
   }
 
   async function handleShare(): Promise<void> {
-    if (!currentSessionId) return
+    if (!currentSessionId || !activeEvent) return
     const url = await window.api.startShareServer(settings.shareServerPort)
-    const target = `${url}/session/${currentSessionId}/composed.png`
+    const target = `${url}/event/${activeEvent.id}/session/${currentSessionId}/composed.png`
     setShareUrl(target)
     const qr = await QRCode.toDataURL(target, { width: 280, margin: 1 })
     setQrDataUrl(qr)
@@ -94,8 +107,8 @@ export default function OutputScreen(): JSX.Element {
   }, [])
 
   function startNewSession(): void {
+    // Keeps the active event + layout so the next guest reuses the same setup.
     resetSession()
-    resetCapturedPhotos()
     setScreen('attract')
   }
 
@@ -132,7 +145,7 @@ export default function OutputScreen(): JSX.Element {
                 {printing ? 'Printing…' : `🖨 Print ${quantity}`}
               </button>
               {!settings.selectedPrinterName && (
-                <p className="status-msg error">No printer selected — set one in Settings.</p>
+                <p className="status-msg error">No printer selected — set one in Photobooth Setup.</p>
               )}
             </div>
 

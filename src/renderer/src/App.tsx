@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from './state/useAppStore'
 import { createDefaultLayouts } from './lib/defaultLayouts'
+import HomeScreen from './screens/HomeScreen'
+import EventListScreen from './screens/EventListScreen'
+import EventSetupScreen from './screens/EventSetupScreen'
 import AttractScreen from './screens/AttractScreen'
-import LayoutSelectScreen from './screens/LayoutSelectScreen'
 import CaptureScreen from './screens/CaptureScreen'
 import ReviewScreen from './screens/ReviewScreen'
 import OutputScreen from './screens/OutputScreen'
@@ -12,32 +14,41 @@ import GalleryScreen from './screens/GalleryScreen'
 
 export default function App(): JSX.Element {
   const [ready, setReady] = useState(false)
+  const bootedRef = useRef(false)
   const screen = useAppStore((s) => s.screen)
   const setSettings = useAppStore((s) => s.setSettings)
   const setLayouts = useAppStore((s) => s.setLayouts)
   const setPrinters = useAppStore((s) => s.setPrinters)
+  const setEvents = useAppStore((s) => s.setEvents)
 
   useEffect(() => {
+    // Guards against React StrictMode's dev-only double-invocation of effects,
+    // which would otherwise race two concurrent "seed default layouts" calls.
+    if (bootedRef.current) return
+    bootedRef.current = true
+
     async function boot(): Promise<void> {
       await window.api.init()
       const settings = await window.api.getSettings()
       setSettings(settings)
 
       let layouts = await window.api.listLayouts()
-      if (layouts.length === 0) {
-        const defaults = createDefaultLayouts()
-        for (const l of defaults) await window.api.saveLayout(l)
-        layouts = defaults
-      }
+      const existingNames = new Set(layouts.map((l) => l.name))
+      const missingDefaults = createDefaultLayouts().filter((l) => !existingNames.has(l.name))
+      for (const l of missingDefaults) await window.api.saveLayout(l)
+      if (missingDefaults.length > 0) layouts = await window.api.listLayouts()
       setLayouts(layouts)
 
       const printers = await window.api.listPrinters()
       setPrinters(printers)
 
+      const events = await window.api.listEvents()
+      setEvents(events)
+
       setReady(true)
     }
     boot()
-  }, [setSettings, setLayouts, setPrinters])
+  }, [setSettings, setLayouts, setPrinters, setEvents])
 
   if (!ready) {
     return (
@@ -48,10 +59,14 @@ export default function App(): JSX.Element {
   }
 
   switch (screen) {
+    case 'home':
+      return <HomeScreen />
+    case 'eventList':
+      return <EventListScreen />
+    case 'eventSetup':
+      return <EventSetupScreen />
     case 'attract':
       return <AttractScreen />
-    case 'layoutSelect':
-      return <LayoutSelectScreen />
     case 'capture':
       return <CaptureScreen />
     case 'review':
@@ -65,6 +80,6 @@ export default function App(): JSX.Element {
     case 'gallery':
       return <GalleryScreen />
     default:
-      return <AttractScreen />
+      return <HomeScreen />
   }
 }

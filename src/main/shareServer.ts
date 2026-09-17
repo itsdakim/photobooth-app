@@ -2,7 +2,7 @@ import http from 'http'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
-import { sessionsDir } from './storage'
+import { eventsDir } from './storage'
 
 let server: http.Server | null = null
 let activePort: number | null = null
@@ -26,21 +26,22 @@ export function startShareServer(port: number): Promise<number> {
       try {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const parts = url.pathname.split('/').filter(Boolean)
-        // expected: /session/<sessionId>/<filename>
-        if (parts[0] !== 'session' || parts.length < 3) {
+        // expected: /event/<eventId>/session/<sessionId>/<filename>
+        if (parts[0] !== 'event' || parts[2] !== 'session' || parts.length < 5) {
           res.writeHead(404)
           res.end('Not found')
           return
         }
-        const sessionId = parts[1]
-        const filename = parts.slice(2).join('/')
-        if (sessionId.includes('..') || filename.includes('..')) {
+        const eventId = parts[1]
+        const sessionId = parts[3]
+        const filename = parts.slice(4).join('/')
+        if (eventId.includes('..') || sessionId.includes('..') || filename.includes('..')) {
           res.writeHead(400)
           res.end('Bad request')
           return
         }
-        const filePath = path.join(sessionsDir(), sessionId, filename)
-        if (!filePath.startsWith(sessionsDir())) {
+        const filePath = path.join(eventsDir(), eventId, 'sessions', sessionId, filename)
+        if (!filePath.startsWith(eventsDir())) {
           res.writeHead(400)
           res.end('Bad request')
           return
