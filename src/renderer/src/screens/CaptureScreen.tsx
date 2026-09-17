@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { playShutterSound } from '../lib/sound'
-import { IconCamera } from '../components/Icon'
+import { IconCamera, IconHome } from '../components/Icon'
 
 export default function CaptureScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
@@ -101,6 +101,11 @@ export default function CaptureScreen(): JSX.Element {
     }
   }, [cameraReady, runSequence])
 
+  function cancelToHome(): void {
+    resetSession()
+    setScreen('home')
+  }
+
   return (
     <div className="screen capture">
       <div className="capture-pill">
@@ -147,6 +152,10 @@ export default function CaptureScreen(): JSX.Element {
           Cancel
         </button>
       )}
+
+      <button className="btn ghost icon-btn exit-btn" title="Cancel session and return Home" onClick={cancelToHome}>
+        <IconHome size={16} />
+      </button>
     </div>
   )
 }

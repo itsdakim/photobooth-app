@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../state/useAppStore'
 import { composeLayout } from '../lib/compose'
 import type { PhotoboothSession } from '@shared/types'
-import { IconChevronRight } from '../components/Icon'
+import { IconChevronRight, IconHome } from '../components/Icon'
 
 export default function ReviewScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
@@ -33,6 +33,11 @@ export default function ReviewScreen(): JSX.Element {
   function retake(): void {
     resetSession()
     setScreen('capture')
+  }
+
+  function cancelToHome(): void {
+    resetSession()
+    setScreen('home')
   }
 
   async function continueToOutput(): Promise<void> {
@@ -102,6 +107,10 @@ export default function ReviewScreen(): JSX.Element {
           </div>
         </div>
       </div>
+
+      <button className="btn ghost icon-btn exit-btn" title="Cancel session and return Home" onClick={cancelToHome}>
+        <IconHome size={16} />
+      </button>
     </div>
   )
 }

@@ -133,6 +133,7 @@ input[type='checkbox'] {
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
+  position: relative;
 }
 
 /* ==========================================================================
@@ -299,14 +300,14 @@ input[type='checkbox'] {
   border-radius: 50%;
   background: var(--color-border-strong);
 }
-.attract .exit-btn {
+.exit-btn {
   position: absolute;
   bottom: 20px;
   right: 20px;
   color: var(--color-ink-disabled);
   opacity: 0.5;
 }
-.attract .exit-btn:hover {
+.exit-btn:hover {
   opacity: 1;
 }
 

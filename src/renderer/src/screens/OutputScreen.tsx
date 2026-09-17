@@ -3,7 +3,15 @@ import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
 import { PRINT_DPI } from '@shared/types'
-import { IconChevronLeft, IconCheck, IconDownload, IconFilm, IconPrint, IconShare } from '../components/Icon'
+import {
+  IconChevronLeft,
+  IconCheck,
+  IconDownload,
+  IconFilm,
+  IconHome,
+  IconPrint,
+  IconShare
+} from '../components/Icon'
 
 const AUTO_RETURN_SECONDS = 120
 const PROMPT_TIMEOUT_SECONDS = 30
@@ -112,6 +120,11 @@ export default function OutputScreen(): JSX.Element {
     // Keeps the active event + layout so the next guest reuses the same setup.
     resetSession()
     setScreen('attract')
+  }
+
+  function cancelToHome(): void {
+    resetSession()
+    setScreen('home')
   }
 
   // Runs down at a flat pace regardless of what the guest does on this page —
@@ -243,6 +256,10 @@ export default function OutputScreen(): JSX.Element {
           </div>
         </div>
       </div>
+
+      <button className="btn ghost icon-btn exit-btn" title="Cancel session and return Home" onClick={cancelToHome}>
+        <IconHome size={16} />
+      </button>
     </div>
   )
 }
