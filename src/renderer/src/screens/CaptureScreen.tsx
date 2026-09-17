@@ -16,6 +16,8 @@ export default function CaptureScreen(): JSX.Element {
   const stageRef = useRef<HTMLDivElement>(null)
   const startedRef = useRef(false)
   const cancelledRef = useRef(false)
+  const streamRef = useRef<MediaStream | null>(null)
+  const cameraStoppedRef = useRef(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [flash, setFlash] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,22 +62,38 @@ export default function CaptureScreen(): JSX.Element {
     return () => observer.disconnect()
   }, [slotAspectRatio])
 
+  // Stops every track immediately (called on cancel as well as on unmount) so
+  // the hardware camera goes dark right away instead of waiting on React's
+  // effect-cleanup timing. Also guards a stream that resolves from
+  // getUserMedia after the guest has already cancelled — without this check
+  // that stream would never get stopped and the camera would stay on.
+  const stopCamera = useCallback((): void => {
+    cameraStoppedRef.current = true
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+  }, [])
+
   useEffect(() => {
     if (!activeEvent || !activeLayout) {
       setScreen('home')
       return
     }
     resetSession()
-    let stream: MediaStream | null = null
+    cameraStoppedRef.current = false
 
     async function startCamera(): Promise<void> {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
           video: settings.cameraDeviceId
             ? { deviceId: { exact: settings.cameraDeviceId } }
             : { width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false
         })
+        if (cameraStoppedRef.current) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
+        streamRef.current = stream
         if (videoRef.current) videoRef.current.srcObject = stream
         setCameraReady(true)
       } catch (err) {
@@ -87,7 +105,7 @@ export default function CaptureScreen(): JSX.Element {
     startCamera()
 
     return () => {
-      stream?.getTracks().forEach((t) => t.stop())
+      stopCamera()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -143,6 +161,7 @@ export default function CaptureScreen(): JSX.Element {
 
   function cancelToHome(): void {
     cancelledRef.current = true
+    stopCamera()
     resetSession()
     setScreen('home')
   }
@@ -200,6 +219,7 @@ export default function CaptureScreen(): JSX.Element {
           className="btn secondary"
           onClick={() => {
             cancelledRef.current = true
+            stopCamera()
             setScreen('attract')
           }}
         >
