@@ -1,0 +1,46 @@
+import { contextBridge, ipcRenderer } from 'electron'
+import type {
+  AppSettings,
+  LayoutTemplate,
+  PhotoboothSession,
+  PrintJobOptions
+} from '@shared/types'
+
+const api = {
+  init: (): Promise<boolean> => ipcRenderer.invoke('app:init'),
+
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),
+  setSettings: (settings: AppSettings): Promise<boolean> =>
+    ipcRenderer.invoke('settings:set', settings),
+
+  listLayouts: (): Promise<LayoutTemplate[]> => ipcRenderer.invoke('layouts:list'),
+  saveLayout: (layout: LayoutTemplate): Promise<boolean> =>
+    ipcRenderer.invoke('layouts:save', layout),
+  deleteLayout: (id: string): Promise<boolean> => ipcRenderer.invoke('layouts:delete', id),
+
+  pickImage: (): Promise<string | null> => ipcRenderer.invoke('assets:pickImage'),
+
+  listSessions: (): Promise<PhotoboothSession[]> => ipcRenderer.invoke('sessions:list'),
+  saveSession: (session: PhotoboothSession): Promise<boolean> =>
+    ipcRenderer.invoke('sessions:save', session),
+  savePhoto: (sessionId: string, dataUrl: string, filename: string): Promise<string> =>
+    ipcRenderer.invoke('sessions:savePhoto', sessionId, dataUrl, filename),
+  saveGif: (sessionId: string, arrayBuffer: ArrayBuffer, filename: string): Promise<string> =>
+    ipcRenderer.invoke('sessions:saveGif', sessionId, arrayBuffer, filename),
+  revealInFolder: (filePath: string): Promise<boolean> =>
+    ipcRenderer.invoke('sessions:revealInFolder', filePath),
+  exportCopy: (sourcePath: string): Promise<string | null> =>
+    ipcRenderer.invoke('sessions:exportCopy', sourcePath),
+
+  listPrinters: (): Promise<import('@shared/types').PrinterInfo[]> =>
+    ipcRenderer.invoke('printers:list'),
+  printImage: (options: PrintJobOptions): Promise<import('@shared/types').PrintJobResult> =>
+    ipcRenderer.invoke('print:image', options),
+
+  startShareServer: (port: number): Promise<string> => ipcRenderer.invoke('share:start', port),
+  stopShareServer: (): Promise<boolean> => ipcRenderer.invoke('share:stop')
+}
+
+export type PhotoboothApi = typeof api
+
+contextBridge.exposeInMainWorld('api', api)
