@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { playShutterSound } from '../lib/sound'
 import { IconCamera } from '../components/Icon'
@@ -13,6 +13,7 @@ export default function CaptureScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
 
   const videoRef = useRef<HTMLVideoElement>(null)
+  const startedRef = useRef(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [flash, setFlash] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -70,7 +71,7 @@ export default function CaptureScreen(): JSX.Element {
     return canvas.toDataURL('image/jpeg', 0.92)
   }
 
-  async function runSequence(): Promise<void> {
+  const runSequence = useCallback(async (): Promise<void> => {
     setRunning(true)
     for (let shot = 0; shot < totalShots; shot++) {
       for (let c = countdownSeconds; c >= 1; c--) {
@@ -88,7 +89,17 @@ export default function CaptureScreen(): JSX.Element {
     }
     setRunning(false)
     setScreen('review')
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalShots, countdownSeconds])
+
+  // Once the camera feed is live, the shoot begins on its own — no extra tap
+  // needed after the guest already hit Start on the Ready screen.
+  useEffect(() => {
+    if (cameraReady && !startedRef.current) {
+      startedRef.current = true
+      runSequence()
+    }
+  }, [cameraReady, runSequence])
 
   return (
     <div className="screen capture">
@@ -132,14 +143,9 @@ export default function CaptureScreen(): JSX.Element {
       </div>
 
       {!error && !running && capturedPhotos.length === 0 && (
-        <div style={{ display: 'flex', gap: 16 }}>
-          <button className="btn secondary" onClick={() => setScreen('attract')}>
-            Cancel
-          </button>
-          <button className="btn primary" onClick={runSequence}>
-            Start Countdown
-          </button>
-        </div>
+        <button className="btn secondary" onClick={() => setScreen('attract')}>
+          Cancel
+        </button>
       )}
     </div>
   )
