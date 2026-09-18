@@ -435,6 +435,150 @@ input[type='checkbox'] {
 }
 
 /* ==========================================================================
+   Photo Selection (guest picks favorites when extra shots were taken)
+   ========================================================================== */
+.photo-selection .content {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.photo-selection-header p {
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.photo-selection-section h3 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+.photo-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+.photo-select-thumb {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid var(--color-border);
+  cursor: default;
+}
+.photo-select-thumb.selectable {
+  cursor: pointer;
+  border-color: var(--color-border-strong);
+}
+.photo-select-thumb.used {
+  border-color: var(--color-accent);
+}
+.photo-select-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.photo-select-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(27, 26, 23, 0.28);
+}
+.photo-select-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.print-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 140px));
+  gap: 12px;
+  justify-content: center;
+}
+.print-slot {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  background: var(--color-accent-tint);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.print-slot.armed {
+  border: 2px solid var(--color-accent);
+}
+.print-slot.filled {
+  background: var(--color-bg);
+}
+.print-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.print-slot-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.print-slot.filled .print-slot-label {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.print-slot-placeholder {
+  font-size: 12px;
+  color: var(--color-ink-faint);
+  text-align: center;
+  padding: 0 10px;
+}
+.print-slot-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(27, 26, 23, 0.55);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.photo-selection-continue {
+  align-self: center;
+  padding: 16px 48px;
+}
+
+/* ==========================================================================
    Review / Output
    ========================================================================== */
 .review-layout,

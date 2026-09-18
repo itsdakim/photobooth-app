@@ -6,6 +6,7 @@ import EventListScreen from './screens/EventListScreen'
 import EventSetupScreen from './screens/EventSetupScreen'
 import AttractScreen from './screens/AttractScreen'
 import CaptureScreen from './screens/CaptureScreen'
+import PhotoSelectionScreen from './screens/PhotoSelectionScreen'
 import ReviewScreen from './screens/ReviewScreen'
 import OutputScreen from './screens/OutputScreen'
 import SettingsScreen from './screens/SettingsScreen'
@@ -69,6 +70,8 @@ export default function App(): JSX.Element {
       return <AttractScreen />
     case 'capture':
       return <CaptureScreen />
+    case 'photoSelection':
+      return <PhotoSelectionScreen />
     case 'review':
       return <ReviewScreen />
     case 'output':

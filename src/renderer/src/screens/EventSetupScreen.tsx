@@ -14,6 +14,7 @@ const FALLBACK_EVENT: PhotoboothEvent = {
   paperSizeId: '4x6',
   printQuantity: 1,
   countdownSeconds: 5,
+  shotsToCapture: 1,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 }
@@ -28,10 +29,19 @@ export default function EventSetupScreen(): JSX.Element {
   const setEditingLayout = useAppStore((s) => s.setEditingLayout)
   const setScreen = useAppStore((s) => s.setScreen)
 
-  const [event, setEvent] = useState<PhotoboothEvent>(editingEvent ?? FALLBACK_EVENT)
+  const [event, setEvent] = useState<PhotoboothEvent>(() => {
+    const base = editingEvent ?? FALLBACK_EVENT
+    // Events saved before "photos to capture" existed won't have it on disk,
+    // and the layout it points to may have gained slots since — never let
+    // the stored value sit below what the layout actually requires.
+    const layoutSlots = layouts.find((l) => l.id === base.layoutId)?.slots.length ?? 1
+    const shotsToCapture = Math.max(base.shotsToCapture ?? layoutSlots, layoutSlots)
+    return { ...base, shotsToCapture }
+  })
   const [saving, setSaving] = useState(false)
 
   const selectedLayout = layouts.find((l) => l.id === event.layoutId) ?? layouts[0] ?? null
+  const minShots = selectedLayout?.slots.length ?? 1
 
   function selectLayout(id: string): void {
     const layout = layouts.find((l) => l.id === id)
@@ -40,7 +50,8 @@ export default function EventSetupScreen(): JSX.Element {
       ...e,
       layoutId: layout.id,
       paperSizeId: layout.paperSizeId,
-      printQuantity: defaultPrintQuantityForPaperSize(layout.paperSizeId)
+      printQuantity: defaultPrintQuantityForPaperSize(layout.paperSizeId),
+      shotsToCapture: layout.slots.length
     }))
   }
 
@@ -53,7 +64,7 @@ export default function EventSetupScreen(): JSX.Element {
     const blank = createBlankLayout(event.paperSizeId)
     await window.api.saveLayout(blank)
     setLayouts(await window.api.listLayouts())
-    setEvent((e) => ({ ...e, layoutId: blank.id, paperSizeId: blank.paperSizeId }))
+    setEvent((e) => ({ ...e, layoutId: blank.id, paperSizeId: blank.paperSizeId, shotsToCapture: blank.slots.length }))
     setEditingLayout(blank, 'eventSetup')
     setScreen('layoutEditor')
   }
@@ -180,6 +191,29 @@ export default function EventSetupScreen(): JSX.Element {
                     Strips print two-up and get cut apart, so copies must be even.
                   </p>
                 )}
+              </div>
+              <div className="field">
+                <label>Photos to capture</label>
+                <div className="qty-stepper">
+                  <button
+                    onClick={() =>
+                      setEvent((e) => ({ ...e, shotsToCapture: Math.max(minShots, e.shotsToCapture - 1) }))
+                    }
+                  >
+                    −
+                  </button>
+                  <span>{event.shotsToCapture}</span>
+                  <button
+                    onClick={() => setEvent((e) => ({ ...e, shotsToCapture: Math.min(20, e.shotsToCapture + 1) }))}
+                  >
+                    +
+                  </button>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+                  {minShots === event.shotsToCapture
+                    ? `This layout needs exactly ${minShots} photo${minShots > 1 ? 's' : ''}.`
+                    : `Guests pick their favorite ${minShots} of ${event.shotsToCapture} shots to fill the layout.`}
+                </p>
               </div>
               <div className="field">
                 <label>Countdown seconds</label>

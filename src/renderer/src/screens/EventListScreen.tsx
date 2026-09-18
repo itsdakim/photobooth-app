@@ -38,6 +38,7 @@ export default function EventListScreen(): JSX.Element {
       paperSizeId,
       printQuantity: defaultPrintQuantityForPaperSize(paperSizeId),
       countdownSeconds: settings.countdownSeconds,
+      shotsToCapture: defaultLayout?.slots.length ?? 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }

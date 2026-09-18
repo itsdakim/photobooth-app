@@ -85,6 +85,10 @@ export interface PhotoboothEvent {
   paperSizeId: string
   printQuantity: number
   countdownSeconds: number
+  /** how many photos the booth takes per session; must be >= the chosen
+   *  layout's slot count. Extra shots let the guest pick their favorites
+   *  and assign them to slots instead of auto-filling in capture order. */
+  shotsToCapture: number
   createdAt: string
   updatedAt: string
 }

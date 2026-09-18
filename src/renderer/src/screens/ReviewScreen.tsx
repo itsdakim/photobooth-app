@@ -9,6 +9,7 @@ export default function ReviewScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
   const activeEvent = useAppStore((s) => s.activeEvent)
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
+  const slotPhotos = useAppStore((s) => s.slotPhotos)
   const composedImage = useAppStore((s) => s.composedImage)
   const setComposedImage = useAppStore((s) => s.setComposedImage)
   const currentSessionId = useAppStore((s) => s.currentSessionId)
@@ -20,11 +21,11 @@ export default function ReviewScreen(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!activeLayout || !activeEvent) {
+    if (!activeLayout || !activeEvent || !slotPhotos || slotPhotos.length !== activeLayout.slots.length) {
       setScreen('home')
       return
     }
-    composeLayout(activeLayout, capturedPhotos)
+    composeLayout(activeLayout, slotPhotos)
       .then(setComposedImage)
       .catch((err) => setError(err instanceof Error ? err.message : String(err)))
     // eslint-disable-next-line react-hooks/exhaustive-deps

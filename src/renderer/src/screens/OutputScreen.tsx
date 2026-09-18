@@ -1,17 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
 import { PRINT_DPI, clampPrintQuantity, isStripPaperSize } from '@shared/types'
-import {
-  IconChevronLeft,
-  IconCheck,
-  IconDownload,
-  IconFilm,
-  IconHome,
-  IconPrint,
-  IconShare
-} from '../components/Icon'
+import { IconChevronLeft, IconCheck, IconHome, IconPrint } from '../components/Icon'
 
 const AUTO_RETURN_SECONDS = 120
 const PROMPT_TIMEOUT_SECONDS = 30
@@ -31,7 +23,7 @@ export default function OutputScreen(): JSX.Element {
     clampPrintQuantity(activeEvent?.printQuantity ?? 2, activeLayout?.paperSizeId ?? '4x6')
   )
   const [printing, setPrinting] = useState(false)
-  const [gifBusy, setGifBusy] = useState(false)
+  const [preparingShare, setPreparingShare] = useState(true)
   const [gifDataUrl, setGifDataUrl] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
@@ -74,42 +66,44 @@ export default function OutputScreen(): JSX.Element {
     }
   }
 
-  async function handleSaveDigitalCopy(): Promise<void> {
-    if (!currentSessionId || !activeEvent || !composedImage) return
-    const path = await window.api.saveComposedPhoto(activeEvent.id, currentSessionId, composedImage)
-    const saved = await window.api.exportCopy(path)
-    if (saved) setStatus({ text: `Saved to ${saved}`, kind: 'success' })
-  }
+  // The composed photo is already saved (from Review), the printer copy is
+  // handled above, and everything else — the GIF and the QR download page —
+  // happens automatically as soon as this screen loads, with no extra taps.
+  const shareStartedRef = useRef(false)
+  useEffect(() => {
+    if (shareStartedRef.current) return
+    if (!currentSessionId || !activeEvent || !activeLayout) return
+    shareStartedRef.current = true
 
-  async function handleBuildGif(): Promise<void> {
-    if (!currentSessionId || !activeEvent || !activeLayout || capturedPhotos.length < 2) return
-    setGifBusy(true)
-    try {
-      const blob = await buildGif(capturedPhotos, {
-        width: 480,
-        height: Math.round((480 * activeLayout.canvasHeight) / activeLayout.canvasWidth),
-        delayMs: 500
-      })
-      const buffer = await blob.arrayBuffer()
-      await window.api.saveGif(activeEvent.id, currentSessionId, buffer)
-      const url = URL.createObjectURL(blob)
-      setGifDataUrl(url)
-      setStatus({ text: 'GIF created!', kind: 'success' })
-    } catch (err) {
-      setStatus({ text: err instanceof Error ? err.message : String(err), kind: 'error' })
-    } finally {
-      setGifBusy(false)
+    async function prepareShare(): Promise<void> {
+      try {
+        if (capturedPhotos.length >= 2) {
+          const blob = await buildGif(capturedPhotos, {
+            width: 480,
+            height: Math.round((480 * activeLayout!.canvasHeight) / activeLayout!.canvasWidth),
+            delayMs: 500
+          })
+          const buffer = await blob.arrayBuffer()
+          await window.api.saveGif(activeEvent!.id, currentSessionId!, buffer)
+          setGifDataUrl(URL.createObjectURL(blob))
+        }
+
+        if (settings.shareServerEnabled) {
+          const baseUrl = await window.api.startShareServer(settings.shareServerPort)
+          const target = `${baseUrl}/event/${activeEvent!.id}/session/${currentSessionId}`
+          setShareUrl(target)
+          const qr = await QRCode.toDataURL(target, { width: 240, margin: 1 })
+          setQrDataUrl(qr)
+        }
+      } catch (err) {
+        setStatus({ text: err instanceof Error ? err.message : String(err), kind: 'error' })
+      } finally {
+        setPreparingShare(false)
+      }
     }
-  }
-
-  async function handleShare(): Promise<void> {
-    if (!currentSessionId || !activeEvent) return
-    const url = await window.api.startShareServer(settings.shareServerPort)
-    const target = `${url}/event/${activeEvent.id}/completed/${currentSessionId}.png`
-    setShareUrl(target)
-    const qr = await QRCode.toDataURL(target, { width: 280, margin: 1 })
-    setQrDataUrl(qr)
-  }
+    prepareShare()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -206,13 +200,7 @@ export default function OutputScreen(): JSX.Element {
       )}
       <div className="content">
         <div className="output-layout">
-          <div className="preview-frame">
-            {gifDataUrl ? (
-              <img src={gifDataUrl} alt="Session GIF" />
-            ) : (
-              composedImage && <img src={composedImage} alt="Composed" />
-            )}
-          </div>
+          <div className="preview-frame">{composedImage && <img src={composedImage} alt="Composed" />}</div>
 
           <div className="side-panel">
             <div className="panel-section">
@@ -253,26 +241,36 @@ export default function OutputScreen(): JSX.Element {
             </div>
 
             <div className="panel-section">
-              <h3>Save &amp; Share</h3>
-              <button className="btn secondary" onClick={handleSaveDigitalCopy}>
-                <IconDownload size={16} />
-                Save Digital Copy
-              </button>
-              <button className="btn secondary" onClick={handleBuildGif} disabled={gifBusy}>
-                <IconFilm size={16} />
-                {gifBusy ? 'Building GIF…' : 'Create GIF'}
-              </button>
-              <button className="btn secondary" onClick={handleShare}>
-                <IconShare size={16} />
-                Share via QR Code
-              </button>
-              {qrDataUrl && (
+              <h3>Share</h3>
+              {preparingShare && <p className="status-msg">Preparing your GIF and download link…</p>}
+              {gifDataUrl && (
+                <img
+                  src={gifDataUrl}
+                  alt="Session GIF"
+                  style={{ width: '100%', borderRadius: 12, border: '1px solid var(--color-border)' }}
+                />
+              )}
+              {qrDataUrl ? (
                 <div style={{ textAlign: 'center' }}>
                   <div className="qr-box">
-                    <img src={qrDataUrl} alt="QR code" width={200} height={200} />
+                    <img src={qrDataUrl} alt="QR code" width={180} height={180} />
                   </div>
-                  <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', wordBreak: 'break-all' }}>{shareUrl}</p>
+                  <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 8 }}>
+                    Scan to download your photo &amp; GIF
+                  </p>
+                  {shareUrl && (
+                    <p style={{ fontSize: 11, color: 'var(--color-ink-faint)', wordBreak: 'break-all' }}>
+                      {shareUrl}
+                    </p>
+                  )}
                 </div>
+              ) : (
+                !preparingShare &&
+                !settings.shareServerEnabled && (
+                  <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+                    QR sharing is turned off — enable it in Photobooth Setup.
+                  </p>
+                )
               )}
             </div>
 

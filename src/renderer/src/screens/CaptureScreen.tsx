@@ -9,6 +9,7 @@ export default function CaptureScreen(): JSX.Element {
   const settings = useAppStore((s) => s.settings)
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
   const addCapturedPhoto = useAppStore((s) => s.addCapturedPhoto)
+  const setSlotPhotos = useAppStore((s) => s.setSlotPhotos)
   const resetSession = useAppStore((s) => s.resetSession)
   const setScreen = useAppStore((s) => s.setScreen)
 
@@ -25,14 +26,20 @@ export default function CaptureScreen(): JSX.Element {
   const [cameraReady, setCameraReady] = useState(false)
   const [frameSize, setFrameSize] = useState<{ width: number; height: number } | null>(null)
 
-  const totalShots = activeLayout?.slots.length ?? 3
+  // The layout defines a minimum (one shot per slot); the event can raise it
+  // so guests get extra takes to choose from on the Photo Selection screen.
+  const totalShots = Math.max(
+    activeEvent?.shotsToCapture ?? activeLayout?.slots.length ?? 3,
+    activeLayout?.slots.length ?? 1
+  )
   const countdownSeconds = activeEvent?.countdownSeconds ?? settings.countdownSeconds
   const currentShotNumber = Math.min(capturedPhotos.length + 1, totalShots)
 
-  // Frame the live preview to the exact aspect ratio of the print slot this
-  // shot will land in, so what the guest sees matches the final crop with no
-  // stretching once it's composited into the layout.
-  const targetSlot = activeLayout?.slots[Math.min(capturedPhotos.length, totalShots - 1)]
+  // Frame the live preview to the aspect ratio of a print slot — cycling
+  // through the layout's slots when there are more shots than slots — so
+  // what the guest sees roughly matches the final crop with no stretching.
+  const slotCount = activeLayout?.slots.length ?? 0
+  const targetSlot = slotCount > 0 ? activeLayout!.slots[capturedPhotos.length % slotCount] : undefined
   const slotAspectRatio = targetSlot ? targetSlot.width / targetSlot.height : 4 / 3
 
   // Recompute the frame's pixel size whenever the stage resizes for any
@@ -146,7 +153,16 @@ export default function CaptureScreen(): JSX.Element {
     }
     if (cancelledRef.current) return
     setRunning(false)
-    setScreen('review')
+
+    // Auto-assign in capture order when the count matches the layout exactly;
+    // otherwise send the guest to pick favorites and place them into slots.
+    const finalPhotos = useAppStore.getState().capturedPhotos
+    if (activeLayout && finalPhotos.length === activeLayout.slots.length) {
+      setSlotPhotos([...finalPhotos])
+      setScreen('review')
+    } else {
+      setScreen('photoSelection')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalShots, countdownSeconds])
 
