@@ -35,6 +35,8 @@ export interface ImageElement {
   height: number
   rotation: number
   opacity: number
+  /** draw beneath the guest photos (backdrops) instead of on top (frames, logos) */
+  behindPhotos?: boolean
 }
 
 /** Standard DNP-compatible print media sizes, in inches. */

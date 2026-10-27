@@ -10,6 +10,7 @@ import PhotoSelectionScreen from './screens/PhotoSelectionScreen'
 import ReviewScreen from './screens/ReviewScreen'
 import OutputScreen from './screens/OutputScreen'
 import SettingsScreen from './screens/SettingsScreen'
+import TemplatesScreen from './screens/TemplatesScreen'
 import LayoutEditorScreen from './screens/LayoutEditorScreen'
 import GalleryScreen from './screens/GalleryScreen'
 
@@ -78,6 +79,8 @@ export default function App(): JSX.Element {
       return <OutputScreen />
     case 'settings':
       return <SettingsScreen />
+    case 'templates':
+      return <TemplatesScreen />
     case 'layoutEditor':
       return <LayoutEditorScreen />
     case 'gallery':

@@ -179,6 +179,71 @@ export function IconPlus(props: IconProps = {}): JSX.Element {
     props
   )
 }
+export function IconLayout(props: IconProps = {}): JSX.Element {
+  return base(
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2.5" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="9" x2="9" y2="21" />
+    </>,
+    props
+  )
+}
+export function IconCopy(props: IconProps = {}): JSX.Element {
+  return base(
+    <>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h8" />
+    </>,
+    props
+  )
+}
+export function IconUndo(props: IconProps = {}): JSX.Element {
+  return base(
+    <>
+      <polyline points="9,14 4,9 9,4" />
+      <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+    </>,
+    props
+  )
+}
+export function IconRedo(props: IconProps = {}): JSX.Element {
+  return base(
+    <>
+      <polyline points="15,14 20,9 15,4" />
+      <path d="M20 9H10a6 6 0 0 0 0 12h3" />
+    </>,
+    props
+  )
+}
+export function IconArrowUp(props: IconProps = {}): JSX.Element {
+  return base(
+    <>
+      <line x1="12" y1="19" x2="12" y2="5" />
+      <polyline points="5,12 12,5 19,12" />
+    </>,
+    props
+  )
+}
+export function IconArrowDown(props: IconProps = {}): JSX.Element {
+  return base(
+    <>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <polyline points="19,12 12,19 5,12" />
+    </>,
+    props
+  )
+}
+export function IconUpload(props: IconProps = {}): JSX.Element {
+  return base(
+    <>
+      <path d="M12 16V4" />
+      <polyline points="7,9 12,4 17,9" />
+      <path d="M4 20h16" />
+    </>,
+    props
+  )
+}
 export function IconX(props: IconProps = {}): JSX.Element {
   return base(
     <>

@@ -14,6 +14,28 @@ export default function LayoutThumb({
   const scale = displayHeight / layout.canvasHeight
   const displayWidth = layout.canvasWidth * scale
 
+  function renderImages(behind: boolean): JSX.Element[] {
+    return layout.imageElements
+      .filter((im) => Boolean(im.behindPhotos) === behind)
+      .map((im) => (
+        <img
+          key={im.id}
+          src={toFileUrl(im.src)}
+          alt=""
+          style={{
+            position: 'absolute',
+            left: im.x * scale,
+            top: im.y * scale,
+            width: im.width * scale,
+            height: im.height * scale,
+            opacity: im.opacity,
+            transform: `rotate(${im.rotation}deg)`,
+            objectFit: 'contain'
+          }}
+        />
+      ))
+  }
+
   return (
     <div
       className="layout-thumb"
@@ -30,6 +52,7 @@ export default function LayoutThumb({
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
       )}
+      {renderImages(true)}
       {layout.slots.map((slot, i) => (
         <div
           key={slot.id}
@@ -45,23 +68,7 @@ export default function LayoutThumb({
           {i + 1}
         </div>
       ))}
-      {layout.imageElements.map((im) => (
-        <img
-          key={im.id}
-          src={toFileUrl(im.src)}
-          alt=""
-          style={{
-            position: 'absolute',
-            left: im.x * scale,
-            top: im.y * scale,
-            width: im.width * scale,
-            height: im.height * scale,
-            opacity: im.opacity,
-            transform: `rotate(${im.rotation}deg)`,
-            objectFit: 'contain'
-          }}
-        />
-      ))}
+      {renderImages(false)}
       {layout.textElements.map((t) => (
         <div
           key={t.id}

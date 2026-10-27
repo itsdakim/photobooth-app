@@ -42,6 +42,26 @@ function drawCover(
   ctx.restore()
 }
 
+/** Draws `img` fully visible inside the rect (object-fit: contain semantics). */
+function drawContain(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  rotation: number
+): void {
+  const scale = Math.min(w / img.width, h / img.height)
+  const dw = img.width * scale
+  const dh = img.height * scale
+  ctx.save()
+  ctx.translate(x + w / 2, y + h / 2)
+  ctx.rotate((rotation * Math.PI) / 180)
+  ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh)
+  ctx.restore()
+}
+
 export async function composeLayout(
   layout: LayoutTemplate,
   photoDataUrls: string[]
@@ -61,6 +81,20 @@ export async function composeLayout(
     drawCover(ctx, bg, 0, 0, canvas.width, canvas.height, 0)
   }
 
+  async function drawDecorativeImages(behind: boolean): Promise<void> {
+    for (const el of layout.imageElements) {
+      if (Boolean(el.behindPhotos) !== behind) continue
+      const img = await loadImage(toFileUrl(el.src))
+      ctx!.save()
+      ctx!.globalAlpha = el.opacity
+      drawContain(ctx!, img, el.x, el.y, el.width, el.height, el.rotation)
+      ctx!.restore()
+    }
+  }
+
+  // Backdrop designs sit beneath the guest photos
+  await drawDecorativeImages(true)
+
   // Photo slots
   for (let i = 0; i < layout.slots.length; i++) {
     const slot = layout.slots[i]
@@ -70,16 +104,10 @@ export async function composeLayout(
     drawCover(ctx, img, slot.x, slot.y, slot.width, slot.height, slot.rotation)
   }
 
-  // Decorative images (logos, stickers) layered above photos
-  for (const el of layout.imageElements) {
-    const img = await loadImage(toFileUrl(el.src))
-    ctx.save()
-    ctx.globalAlpha = el.opacity
-    drawCover(ctx, img, el.x, el.y, el.width, el.height, el.rotation)
-    ctx.restore()
-  }
+  // Frames, logos and stickers layered above photos
+  await drawDecorativeImages(false)
 
-  // Text
+  // Text — wrapped inside its box and aligned within it, matching the editor
   for (const t of layout.textElements) {
     ctx.save()
     ctx.translate(t.x, t.y)
@@ -90,7 +118,8 @@ export async function composeLayout(
     ctx.fillStyle = t.color
     ctx.textAlign = t.align
     ctx.textBaseline = 'top'
-    wrapText(ctx, t.text, 0, 0, t.width, t.fontSize * 1.2)
+    const anchorX = t.align === 'center' ? t.width / 2 : t.align === 'right' ? t.width : 0
+    wrapText(ctx, t.text, anchorX, 0, t.width, t.fontSize * 1.2)
     ctx.restore()
   }
 

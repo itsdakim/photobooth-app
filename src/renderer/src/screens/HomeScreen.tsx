@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
-import { IconCalendar, IconChevronRight, IconSliders } from '../components/Icon'
+import { IconCalendar, IconChevronRight, IconLayout, IconSliders } from '../components/Icon'
 
 export default function HomeScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
@@ -53,21 +53,27 @@ export default function HomeScreen(): JSX.Element {
           </div>
           <IconChevronRight size={18} className="chevron" />
         </div>
-        <div
-          className="home-card"
-          onClick={() => {
-            useAppStore.getState().setEditingLayout(null)
-            setScreen('settings')
-          }}
-        >
-          <div>
-            <div className="home-card-icon">
-              <IconSliders size={22} strokeWidth={1.6} />
+        <div className="home-stack">
+          <div className="home-card" onClick={() => setScreen('templates')}>
+            <div>
+              <div className="home-card-icon">
+                <IconLayout size={22} strokeWidth={1.6} />
+              </div>
+              <h2>Templates</h2>
+              <p>Design photo strip and print layouts — upload artwork, place and resize photo areas.</p>
             </div>
-            <h2>Photobooth Setup</h2>
-            <p>Printer, camera, and layout template library — shared across all events.</p>
+            <IconChevronRight size={18} className="chevron" />
           </div>
-          <IconChevronRight size={18} className="chevron" />
+          <div className="home-card" onClick={() => setScreen('settings')}>
+            <div>
+              <div className="home-card-icon">
+                <IconSliders size={22} strokeWidth={1.6} />
+              </div>
+              <h2>Photobooth Setup</h2>
+              <p>Business name, printer, camera, and sharing — shared across all events.</p>
+            </div>
+            <IconChevronRight size={18} className="chevron" />
+          </div>
         </div>
       </div>
 

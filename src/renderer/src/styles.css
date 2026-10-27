@@ -655,19 +655,28 @@ input[type='checkbox'] {
 }
 .editor-canvas-wrap {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
+  background: #efede7;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   overflow: hidden;
 }
-.editor-canvas {
+/* Holds the clipped canvas plus the unclipped selection overlay on top, so
+   resize handles at the page edge aren't cut off. */
+.editor-stage {
   position: relative;
+  flex-shrink: 0;
+}
+.editor-canvas {
+  position: absolute;
+  inset: 0;
   background: #fff;
   overflow: hidden;
-  box-shadow: 0 0 0 1px var(--color-border);
+  box-shadow: 0 0 0 1px var(--color-border-strong), 0 8px 24px rgba(27, 26, 23, 0.1);
 }
 .editor-canvas img.bg {
   position: absolute;
@@ -675,11 +684,13 @@ input[type='checkbox'] {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 .editor-element {
   position: absolute;
   cursor: grab;
   border: 1px dashed transparent;
+  touch-action: none;
 }
 .editor-element:hover,
 .editor-element.selected {
@@ -691,8 +702,91 @@ input[type='checkbox'] {
   align-items: center;
   justify-content: center;
   color: var(--color-accent);
-  font-size: 12px;
+}
+.editor-element .slot-number {
+  font-family: var(--font-display);
+  font-size: 22px;
   font-weight: 600;
+  pointer-events: none;
+}
+.editor-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.editor-selection {
+  position: absolute;
+  border: 1.5px solid var(--color-accent);
+  pointer-events: none;
+}
+.editor-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #fff;
+  border: 1.5px solid var(--color-accent);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  z-index: 10;
+  touch-action: none;
+}
+.editor-handle-side {
+  top: 50%;
+  width: 10px;
+  height: 22px;
+  cursor: ew-resize;
+}
+.editor-title-input {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  width: 300px;
+  text-align: center;
+}
+.editor-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.editor-add-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.editor-add-grid .btn {
+  justify-content: center;
+  padding: 11px 10px;
+  font-size: 13px;
+}
+.editor-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-ink-faint);
+  margin: 0;
+}
+.element-list-actions {
+  display: flex;
+  gap: 4px;
+}
+.mini-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.mini-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.mini-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 .editor-panel {
   width: 340px;
@@ -1008,6 +1102,90 @@ input[type='checkbox'] {
 .event-row-actions {
   display: flex;
   gap: 8px;
+}
+
+/* ==========================================================================
+   Home — right-hand column holds Templates above Photobooth Setup
+   ========================================================================== */
+.home-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ==========================================================================
+   Templates gallery
+   ========================================================================== */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 240px);
+  gap: 24px;
+}
+.template-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.template-preview {
+  height: 276px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #efede7;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  cursor: pointer;
+}
+.template-preview:hover {
+  border-color: var(--color-accent);
+}
+.template-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.template-meta strong {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+.template-meta span {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}
+.template-actions {
+  display: flex;
+  gap: 6px;
+}
+.template-actions .btn.secondary {
+  flex: 1;
+  justify-content: center;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.template-add {
+  border: 1.5px dashed var(--color-border-strong);
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 360px;
+  color: var(--color-ink-faint);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.template-add:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 /* ==========================================================================

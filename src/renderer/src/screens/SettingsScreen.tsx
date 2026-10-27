@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
-import { createBlankLayout } from '../lib/defaultLayouts'
 import { PAPER_SIZES } from '@shared/types'
-import type { LayoutTemplate } from '@shared/types'
-import { IconChevronLeft, IconPlus } from '../components/Icon'
+import { IconChevronLeft } from '../components/Icon'
 
 export default function SettingsScreen(): JSX.Element {
   const settings = useAppStore((s) => s.settings)
   const setSettings = useAppStore((s) => s.setSettings)
   const printers = useAppStore((s) => s.printers)
   const setPrinters = useAppStore((s) => s.setPrinters)
-  const layouts = useAppStore((s) => s.layouts)
-  const setLayouts = useAppStore((s) => s.setLayouts)
-  const setEditingLayout = useAppStore((s) => s.setEditingLayout)
   const setScreen = useAppStore((s) => s.setScreen)
 
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
@@ -35,24 +30,6 @@ export default function SettingsScreen(): JSX.Element {
   function update<K extends keyof typeof settings>(key: K, value: (typeof settings)[K]): void {
     const next = { ...settings, [key]: value }
     setSettings(next)
-  }
-
-  async function createLayout(): Promise<void> {
-    const newLayout: LayoutTemplate = createBlankLayout(settings.paperSizeId)
-    await window.api.saveLayout(newLayout)
-    setLayouts(await window.api.listLayouts())
-    setEditingLayout(newLayout, 'settings')
-    setScreen('layoutEditor')
-  }
-
-  function editLayout(layout: LayoutTemplate): void {
-    setEditingLayout(layout, 'settings')
-    setScreen('layoutEditor')
-  }
-
-  async function deleteLayoutById(id: string): Promise<void> {
-    await window.api.deleteLayout(id)
-    setLayouts(await window.api.listLayouts())
   }
 
   return (
@@ -166,29 +143,6 @@ export default function SettingsScreen(): JSX.Element {
                 onChange={(e) => update('shareServerPort', Number(e.target.value))}
               />
             </div>
-          </div>
-
-          <div className="panel-section" style={{ gridColumn: '1 / -1' }}>
-            <h3>Layout Template Library</h3>
-            {layouts.map((l) => (
-              <div key={l.id} className="layout-manage-row">
-                <span>
-                  {l.name} - {l.slots.length} photo{l.slots.length > 1 ? 's' : ''}
-                </span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn ghost" onClick={() => editLayout(l)}>
-                    Edit
-                  </button>
-                  <button className="btn ghost" onClick={() => deleteLayoutById(l.id)}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-            <button className="btn secondary" onClick={createLayout}>
-              <IconPlus size={15} />
-              New Layout
-            </button>
           </div>
         </div>
 

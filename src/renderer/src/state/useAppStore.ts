@@ -12,6 +12,7 @@ export type Screen =
   | 'review'
   | 'output'
   | 'settings'
+  | 'templates'
   | 'layoutEditor'
   | 'gallery'
 
@@ -70,7 +71,7 @@ export const useAppStore = create<AppState>((set) => ({
   viewingEventId: null,
   activeLayout: null,
   editingLayout: null,
-  layoutEditorReturnScreen: 'settings',
+  layoutEditorReturnScreen: 'templates',
   capturedPhotos: [],
   slotPhotos: null,
   composedImage: null,
