@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react'
 import { useAppStore } from '../state/useAppStore'
-import { IconCheck, IconHome, IconX } from '../components/Icon'
+import { IconHeart, IconHome, IconX } from '../components/Icon'
+import StepTracker from '../components/StepTracker'
 
 export default function PhotoSelectionScreen(): JSX.Element {
   const activeEvent = useAppStore((s) => s.activeEvent)
@@ -70,6 +71,7 @@ export default function PhotoSelectionScreen(): JSX.Element {
 
   return (
     <div className="screen photo-selection">
+      <StepTracker current="select" />
       <div className="content">
         <div className="photo-selection-header">
           <h2>Choose Your Favorites</h2>
@@ -89,13 +91,10 @@ export default function PhotoSelectionScreen(): JSX.Element {
                   onClick={() => onPhotoClick(i)}
                 >
                   <img src={src} alt={`Shot ${i + 1}`} />
-                  {isUsed ? (
-                    <div className="photo-select-badge">
-                      <IconCheck size={12} strokeWidth={3} />
-                    </div>
-                  ) : (
-                    <span className="photo-select-number">{i + 1}</span>
-                  )}
+                  <div className={`photo-select-badge ${isUsed ? 'on' : ''}`}>
+                    <IconHeart size={15} strokeWidth={2} filled={isUsed} />
+                  </div>
+                  <span className="photo-select-number">{i + 1}</span>
                 </div>
               )
             })}
@@ -130,7 +129,7 @@ export default function PhotoSelectionScreen(): JSX.Element {
           </div>
         </div>
 
-        <button className="btn primary photo-selection-continue" disabled={!allSlotsFilled} onClick={continueToReview}>
+        <button className="btn progress photo-selection-continue" disabled={!allSlotsFilled} onClick={continueToReview}>
           Continue
         </button>
       </div>

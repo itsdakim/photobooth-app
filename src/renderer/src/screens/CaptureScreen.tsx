@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { playShutterSound } from '../lib/sound'
 import { IconCamera, IconHome } from '../components/Icon'
+import StepTracker from '../components/StepTracker'
 
 export default function CaptureScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
@@ -184,13 +185,14 @@ export default function CaptureScreen(): JSX.Element {
 
   return (
     <div className="screen capture">
+      <StepTracker current="capture" />
       <div className="capture-pill">
         Photo {currentShotNumber} of {totalShots}
       </div>
 
       <div className="capture-stage" ref={stageRef}>
         {error ? (
-          <div style={{ textAlign: 'center', color: '#fff', padding: 24 }}>
+          <div style={{ textAlign: 'center', color: 'var(--color-ink)', padding: 24 }}>
             <p>{error}</p>
             <button className="btn secondary" onClick={() => setScreen('attract')}>
               ← Back
@@ -206,7 +208,7 @@ export default function CaptureScreen(): JSX.Element {
             }
           >
             {!cameraReady && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: '#8B887F' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--color-ink-disabled)' }}>
                 <IconCamera size={40} strokeWidth={1.4} />
                 <div style={{ fontSize: 13, letterSpacing: '0.03em' }}>Live Camera Preview</div>
               </div>
@@ -214,6 +216,7 @@ export default function CaptureScreen(): JSX.Element {
             <video ref={videoRef} autoPlay playsInline muted style={{ display: cameraReady ? 'block' : 'none' }} />
             {countdown !== null && (
               <div className="countdown-overlay">
+                <div className="look-callout">Look here!</div>
                 <div className="countdown-badge">{countdown}</div>
               </div>
             )}

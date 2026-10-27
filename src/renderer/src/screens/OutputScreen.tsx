@@ -4,6 +4,8 @@ import { useAppStore } from '../state/useAppStore'
 import { buildGif } from '../lib/gifExport'
 import { PRINT_DPI, clampPrintQuantity, isStripPaperSize } from '@shared/types'
 import { IconChevronLeft, IconCheck, IconHome, IconPrint } from '../components/Icon'
+import StepTracker from '../components/StepTracker'
+import { ScallopFrame } from '../components/Doodles'
 
 const AUTO_RETURN_SECONDS = 120
 const PROMPT_TIMEOUT_SECONDS = 30
@@ -166,6 +168,7 @@ export default function OutputScreen(): JSX.Element {
 
   return (
     <div className="screen">
+      <StepTracker current="print" />
       <div className="topbar">
         <button className="btn icon-btn back-btn" onClick={() => setScreen('review')}>
           <IconChevronLeft size={18} />
@@ -231,7 +234,7 @@ export default function OutputScreen(): JSX.Element {
                   Strips print two-up and get cut apart, so copies must be even.
                 </p>
               )}
-              <button className="btn primary" onClick={handlePrint} disabled={printing}>
+              <button className="btn progress" onClick={handlePrint} disabled={printing}>
                 <IconPrint size={16} />
                 {printing ? 'Printing…' : `Print ${quantity}`}
               </button>
@@ -247,14 +250,16 @@ export default function OutputScreen(): JSX.Element {
                 <img
                   src={gifDataUrl}
                   alt="Session GIF"
-                  style={{ width: '100%', borderRadius: 12, border: '1px solid var(--color-border)' }}
+                  style={{ width: '100%', borderRadius: 12, border: 'var(--stroke) solid var(--color-ink)' }}
                 />
               )}
               {qrDataUrl ? (
                 <div style={{ textAlign: 'center' }}>
-                  <div className="qr-box">
-                    <img src={qrDataUrl} alt="QR code" width={180} height={180} />
-                  </div>
+                  <ScallopFrame size={250}>
+                    <div className="qr-tile">
+                      <img src={qrDataUrl} alt="QR code" width={170} height={170} />
+                    </div>
+                  </ScallopFrame>
                   <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 8 }}>
                     Scan to download your photo &amp; GIF
                   </p>

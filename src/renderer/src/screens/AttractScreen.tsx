@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { IconHome } from '../components/Icon'
+import { DoodleFlower, DoodleHeart, DoodleSparkle, DoodleSquiggle, DoodleStar } from '../components/Doodles'
 
 export default function AttractScreen(): JSX.Element {
   const activeEvent = useAppStore((s) => s.activeEvent)
@@ -15,10 +16,12 @@ export default function AttractScreen(): JSX.Element {
 
   return (
     <div className="screen attract">
-      <svg className="attract-rings" viewBox="0 0 900 1500" preserveAspectRatio="xMidYMid slice">
-        <circle cx="450" cy="720" r="340" fill="none" stroke="#EEEBE3" strokeWidth="1.5" />
-        <circle cx="450" cy="720" r="420" fill="none" stroke="#EEEBE3" strokeWidth="1.5" />
-      </svg>
+      <DoodleSparkle size={64} style={{ top: '12%', left: '9%', transform: 'rotate(-10deg)' }} />
+      <DoodleStar size={44} style={{ top: '20%', left: '19%' }} />
+      <DoodleHeart size={58} style={{ top: '14%', right: '10%', transform: 'rotate(12deg)' }} />
+      <DoodleSquiggle size={84} style={{ top: '26%', right: '18%', transform: 'rotate(8deg)' }} />
+      <DoodleFlower size={88} style={{ bottom: '18%', left: '8%' }} />
+      <DoodleSparkle size={46} style={{ bottom: '24%', right: '12%' }} />
 
       <div className="attract-eyebrow">{activeEvent.name}</div>
 

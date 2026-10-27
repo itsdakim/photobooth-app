@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import { IconCalendar, IconChevronRight, IconLayout, IconSliders } from '../components/Icon'
+import { DoodleFlower, DoodleHeart, DoodleSparkle, DoodleSquiggle } from '../components/Doodles'
 
 export default function HomeScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
@@ -19,6 +20,10 @@ export default function HomeScreen(): JSX.Element {
 
   return (
     <div className="screen home">
+      <DoodleSparkle size={34} style={{ top: 30, left: '47%' }} />
+      <DoodleSquiggle size={52} style={{ top: 34, left: 'calc(47% + 48px)', transform: 'rotate(-8deg)' }} />
+      <DoodleHeart size={34} style={{ bottom: 44, right: 150, transform: 'rotate(10deg)' }} />
+      <DoodleFlower size={62} style={{ bottom: 34, right: 64 }} />
       <div className="home-topbar">
         <div className={`home-brand ${settings.businessName ? '' : 'placeholder'}`}>
           {settings.businessName || 'Photobooth Name'}
@@ -79,14 +84,14 @@ export default function HomeScreen(): JSX.Element {
 
       <div className="status-row">
         <div className="status-item">
-          <span className="status-dot" style={{ background: cameraReady ? undefined : '#D9D5CC' }} />
+          <span className={`status-dot ${cameraReady ? '' : 'off'}`} />
           <div>
             <div className="caption">Camera</div>
             <div className="value">{cameraReady === null ? 'Checking…' : cameraReady ? 'Ready' : 'Not detected'}</div>
           </div>
         </div>
         <div className="status-item">
-          <span className="status-dot" style={{ background: printerReady ? undefined : '#D9D5CC' }} />
+          <span className={`status-dot ${printerReady ? '' : 'off'}`} />
           <div>
             <div className="caption">Printer</div>
             <div className="value">{printerReady ? settings.selectedPrinterName : 'Not configured'}</div>

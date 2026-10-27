@@ -244,6 +244,15 @@ export function IconUpload(props: IconProps = {}): JSX.Element {
     props
   )
 }
+export function IconHeart({ filled = false, ...props }: IconProps & { filled?: boolean } = {}): JSX.Element {
+  return base(
+    <path
+      d="M12 21C5 15.8 3 12 3 8.9 3 6.2 5 4.5 7.2 4.5c1.9 0 3.5 1.1 4.8 3.2 1.3-2.1 2.9-3.2 4.8-3.2C19 4.5 21 6.2 21 8.9c0 3.1-2 6.9-9 12.1Z"
+      fill={filled ? 'currentColor' : 'none'}
+    />,
+    props
+  )
+}
 export function IconX(props: IconProps = {}): JSX.Element {
   return base(
     <>

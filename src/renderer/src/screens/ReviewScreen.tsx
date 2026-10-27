@@ -4,6 +4,7 @@ import { useAppStore } from '../state/useAppStore'
 import { composeLayout } from '../lib/compose'
 import type { PhotoboothSession } from '@shared/types'
 import { IconChevronRight, IconHome } from '../components/Icon'
+import StepTracker from '../components/StepTracker'
 
 export default function ReviewScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
@@ -83,6 +84,7 @@ export default function ReviewScreen(): JSX.Element {
 
   return (
     <div className="screen">
+      <StepTracker current="preview" />
       <div className="topbar">
         <button className="btn secondary" onClick={retake}>
           Retake
@@ -98,7 +100,7 @@ export default function ReviewScreen(): JSX.Element {
           <div className="side-panel">
             <p>Love it? Continue to choose print quantity, save a digital copy, or make a GIF.</p>
             {error && <p className="status-msg error">{error}</p>}
-            <button className="btn primary" disabled={!composedImage || busy} onClick={continueToOutput}>
+            <button className="btn progress" disabled={!composedImage || busy} onClick={continueToOutput}>
               {busy ? 'Saving…' : 'Continue'}
               {!busy && <IconChevronRight size={16} />}
             </button>
