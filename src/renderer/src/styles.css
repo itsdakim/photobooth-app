@@ -816,6 +816,104 @@ input[type='color'] {
   text-align: center;
 }
 
+/* Print & Share fits one screen: the preview takes the full height, the side
+   panel stacks a compact print box over a Share box that absorbs the rest. */
+.output-layout {
+  align-items: stretch;
+  gap: 24px;
+  min-height: 0;
+}
+.output-layout .preview-frame {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 18px;
+  min-height: 0;
+}
+.output-layout .preview-frame img {
+  height: 100%;
+  width: auto;
+  max-height: none;
+  max-width: 100%;
+  object-fit: contain;
+}
+.side-panel.output-side {
+  width: 420px;
+  height: 100%;
+  min-height: 0;
+  gap: 14px;
+}
+.output-side .panel-section {
+  padding: 16px 18px;
+  gap: 10px;
+}
+.print-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.print-row .btn {
+  flex: 1;
+  min-width: 0;
+}
+.output-side .qty-stepper {
+  gap: 12px;
+}
+.output-side .qty-stepper button {
+  width: 38px;
+  height: 38px;
+}
+.output-side .qty-stepper span {
+  font-size: 26px;
+}
+.output-side .panel-section p {
+  font-size: 12px;
+  line-height: 1.3;
+}
+.output-side .status-msg {
+  min-height: 0;
+}
+.share-section {
+  flex: 1;
+  min-height: 0;
+}
+.share-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.share-gif {
+  max-height: 100%;
+  max-width: 38%;
+  object-fit: contain;
+  border-radius: 12px;
+  border: var(--stroke) solid var(--color-ink);
+}
+.share-qr {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.share-qr-slot {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.share-caption {
+  text-align: center;
+  color: var(--color-ink-faint);
+}
+
 /* ==========================================================================
    Layout editor
    ========================================================================== */

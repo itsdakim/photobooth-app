@@ -34,6 +34,24 @@ export default function OutputScreen(): JSX.Element {
   const [showTimeoutPrompt, setShowTimeoutPrompt] = useState(false)
   const [promptSecondsLeft, setPromptSecondsLeft] = useState(PROMPT_TIMEOUT_SECONDS)
 
+  // The QR scales to whatever room the Share box has left on this window, so
+  // everything on the page fits without scrolling.
+  const qrSlotRef = useRef<HTMLDivElement>(null)
+  const [qrSize, setQrSize] = useState(180)
+  const qrImgSize = Math.round(qrSize * 0.64)
+  useEffect(() => {
+    const slot = qrSlotRef.current
+    if (!slot) return
+    const fit = (): void => {
+      const { width, height } = slot.getBoundingClientRect()
+      setQrSize(Math.max(64, Math.min(250, Math.floor(Math.min(width, height)))))
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(slot)
+    return () => observer.disconnect()
+  }, [qrDataUrl])
+
   async function handlePrint(): Promise<void> {
     if (
       !composedImage ||
@@ -205,28 +223,34 @@ export default function OutputScreen(): JSX.Element {
         <div className="output-layout">
           <div className="preview-frame">{composedImage && <img src={composedImage} alt="Composed" />}</div>
 
-          <div className="side-panel">
+          <div className="side-panel output-side">
             <div className="panel-section">
               <h3>Print copies</h3>
-              <div className="qty-stepper">
-                <button
-                  onClick={() =>
-                    setQuantity((q) =>
-                      clampPrintQuantity(q - (isStripLayout ? 2 : 1), activeLayout?.paperSizeId ?? '4x6')
-                    )
-                  }
-                >
-                  −
-                </button>
-                <span>{quantity}</span>
-                <button
-                  onClick={() =>
-                    setQuantity((q) =>
-                      clampPrintQuantity(q + (isStripLayout ? 2 : 1), activeLayout?.paperSizeId ?? '4x6')
-                    )
-                  }
-                >
-                  +
+              <div className="print-row">
+                <div className="qty-stepper">
+                  <button
+                    onClick={() =>
+                      setQuantity((q) =>
+                        clampPrintQuantity(q - (isStripLayout ? 2 : 1), activeLayout?.paperSizeId ?? '4x6')
+                      )
+                    }
+                  >
+                    −
+                  </button>
+                  <span>{quantity}</span>
+                  <button
+                    onClick={() =>
+                      setQuantity((q) =>
+                        clampPrintQuantity(q + (isStripLayout ? 2 : 1), activeLayout?.paperSizeId ?? '4x6')
+                      )
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+                <button className="btn progress" onClick={handlePrint} disabled={printing}>
+                  <IconPrint size={16} />
+                  {printing ? 'Printing…' : `Print ${quantity}`}
                 </button>
               </div>
               {isStripLayout && (
@@ -234,49 +258,40 @@ export default function OutputScreen(): JSX.Element {
                   Strips print two-up and get cut apart, so copies must be even.
                 </p>
               )}
-              <button className="btn progress" onClick={handlePrint} disabled={printing}>
-                <IconPrint size={16} />
-                {printing ? 'Printing…' : `Print ${quantity}`}
-              </button>
               {!settings.selectedPrinterName && (
                 <p className="status-msg error">No printer selected — set one in Photobooth Setup.</p>
               )}
             </div>
 
-            <div className="panel-section">
+            <div className="panel-section share-section">
               <h3>Share</h3>
               {preparingShare && <p className="status-msg">Preparing your GIF and download link…</p>}
-              {gifDataUrl && (
-                <img
-                  src={gifDataUrl}
-                  alt="Session GIF"
-                  style={{ width: '100%', borderRadius: 12, border: 'var(--stroke) solid var(--color-ink)' }}
-                />
-              )}
-              {qrDataUrl ? (
-                <div style={{ textAlign: 'center' }}>
-                  <ScallopFrame size={250}>
-                    <div className="qr-tile">
-                      <img src={qrDataUrl} alt="QR code" width={170} height={170} />
+              <div className="share-body">
+                {gifDataUrl && <img className="share-gif" src={gifDataUrl} alt="Session GIF" />}
+                {qrDataUrl ? (
+                  <div className="share-qr">
+                    <div className="share-qr-slot" ref={qrSlotRef}>
+                      <ScallopFrame size={qrSize}>
+                        <div
+                          className="qr-tile"
+                          style={{ padding: Math.round(qrSize * 0.04) }}
+                          title={shareUrl ?? undefined}
+                        >
+                          <img src={qrDataUrl} alt="QR code" width={qrImgSize} height={qrImgSize} />
+                        </div>
+                      </ScallopFrame>
                     </div>
-                  </ScallopFrame>
-                  <p style={{ fontSize: 12, color: 'var(--color-ink-faint)', marginTop: 8 }}>
-                    Scan to download your photo &amp; GIF
-                  </p>
-                  {shareUrl && (
-                    <p style={{ fontSize: 11, color: 'var(--color-ink-faint)', wordBreak: 'break-all' }}>
-                      {shareUrl}
+                    <p className="share-caption">Scan to download your photo &amp; GIF</p>
+                  </div>
+                ) : (
+                  !preparingShare &&
+                  !settings.shareServerEnabled && (
+                    <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+                      QR sharing is turned off — enable it in Photobooth Setup.
                     </p>
-                  )}
-                </div>
-              ) : (
-                !preparingShare &&
-                !settings.shareServerEnabled && (
-                  <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
-                    QR sharing is turned off — enable it in Photobooth Setup.
-                  </p>
-                )
-              )}
+                  )
+                )}
+              </div>
             </div>
 
             {status && <p className={`status-msg ${status.kind}`}>{status.text}</p>}
