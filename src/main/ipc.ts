@@ -19,6 +19,7 @@ import {
   saveRawPhoto,
   saveGif,
   deleteGif,
+  addPrintCount,
   copyAsset
 } from './storage'
 import { listPrinters, printImage } from './printer'
@@ -135,6 +136,11 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
     async (_e, eventId: string, sessionId: string, arrayBuffer: ArrayBuffer) =>
       saveGif(eventId, sessionId, Buffer.from(arrayBuffer))
   )
+
+  ipcMain.handle('sessions:addPrints', async (_e, eventId: string, sessionId: string, copies: number) => {
+    await addPrintCount(eventId, sessionId, copies)
+    return true
+  })
 
   ipcMain.handle('sessions:deleteGif', async (_e, eventId: string, sessionId: string) => {
     await deleteGif(eventId, sessionId)

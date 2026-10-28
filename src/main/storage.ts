@@ -160,7 +160,7 @@ export function exportStamp(sessionId: string): string {
 export async function copyToExportFolder(
   eventId: string,
   sessionId: string,
-  subfolder: 'Photos' | 'Individual Photos' | 'GIFs' | 'QR Codes',
+  subfolder: 'Photos' | 'Individual Photos' | 'GIFs',
   suffix: string,
   extension: string,
   buffer: Buffer
@@ -214,9 +214,24 @@ export async function deleteGif(eventId: string, sessionId: string): Promise<voi
   await fs.rm(path.join(eventGifsDir(eventId), `${sessionId}.gif`), { force: true })
 }
 
+/** Each session's online link, from the event's cloud.json (written by online sharing). */
+async function readShareUrls(eventId: string): Promise<Record<string, string>> {
+  try {
+    const state = JSON.parse(await fs.readFile(path.join(eventDir(eventId), 'cloud.json'), 'utf-8')) as {
+      sessions?: Record<string, { url?: string }>
+    }
+    const urls: Record<string, string> = {}
+    for (const [id, s] of Object.entries(state.sessions ?? {})) if (s.url) urls[id] = s.url
+    return urls
+  } catch {
+    return {}
+  }
+}
+
 export async function listSessions(eventId: string): Promise<PhotoboothSession[]> {
   const dir = eventSessionsDir(eventId)
   const files = await fs.readdir(dir).catch(() => [])
+  const shareUrls = await readShareUrls(eventId)
   const sessions: PhotoboothSession[] = []
   for (const file of files) {
     if (!file.endsWith('.json')) continue
@@ -226,6 +241,7 @@ export async function listSessions(eventId: string): Promise<PhotoboothSession[]
       // The GIF is written after the session record, so look for it on disk.
       const gifPath = path.join(eventGifsDir(eventId), `${session.id}.gif`)
       session.gifPath = (await fs.access(gifPath).then(() => true).catch(() => false)) ? gifPath : null
+      session.shareUrl = shareUrls[session.id] ?? null
       sessions.push(session)
     } catch {
       // skip corrupt file
@@ -242,6 +258,14 @@ export async function saveSession(session: PhotoboothSession): Promise<void> {
     JSON.stringify(session, null, 2),
     'utf-8'
   )
+}
+
+/** Adds to a session's printed-copies tally (first prints and reprints alike). */
+export async function addPrintCount(eventId: string, sessionId: string, copies: number): Promise<void> {
+  const file = path.join(eventSessionsDir(eventId), `${sessionId}.json`)
+  const session = JSON.parse(await fs.readFile(file, 'utf-8')) as PhotoboothSession
+  session.printCount = (session.printCount ?? 0) + copies
+  await fs.writeFile(file, JSON.stringify(session, null, 2), 'utf-8')
 }
 
 export async function deleteSession(eventId: string, sessionId: string): Promise<void> {

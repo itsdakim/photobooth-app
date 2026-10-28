@@ -40,6 +40,8 @@ const api = {
     ipcRenderer.invoke('sessions:saveComposedPhoto', eventId, sessionId, dataUrl),
   saveGif: (eventId: string, sessionId: string, arrayBuffer: ArrayBuffer): Promise<string> =>
     ipcRenderer.invoke('sessions:saveGif', eventId, sessionId, arrayBuffer),
+  addPrintCount: (eventId: string, sessionId: string, copies: number): Promise<boolean> =>
+    ipcRenderer.invoke('sessions:addPrints', eventId, sessionId, copies),
   deleteGif: (eventId: string, sessionId: string): Promise<boolean> =>
     ipcRenderer.invoke('sessions:deleteGif', eventId, sessionId),
   pickExportFolder: (): Promise<string | null> => ipcRenderer.invoke('settings:pickExportFolder'),

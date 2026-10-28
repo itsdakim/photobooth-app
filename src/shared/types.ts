@@ -132,6 +132,9 @@ export interface PhotoboothSession {
   /** absolute file path to the exported animated GIF, if generated */
   gifPath: string | null
   printCount: number
+  /** the online page this guest's QR code opens, once online sharing has given the
+   *  session one — filled in when sessions are listed, not stored on the session */
+  shareUrl?: string | null
 }
 
 export interface PrinterInfo {

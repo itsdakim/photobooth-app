@@ -120,6 +120,7 @@ export default function OutputScreen(): JSX.Element {
         copies: quantity
       })
       if (result.success) {
+        await window.api.addPrintCount(activeEvent.id, currentSessionId, quantity)
         setStatus({ text: `Sent ${quantity} ${quantity === 1 ? 'copy' : 'copies'} to the printer.`, kind: 'success' })
       } else {
         setStatus({ text: `Print failed: ${result.error ?? 'unknown error'}`, kind: 'error' })

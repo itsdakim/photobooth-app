@@ -1,11 +1,9 @@
 import { nativeImage } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
-import QRCode from 'qrcode'
 import { cloudConfigured, eventKeepOnlineDays, safeFolderName } from '@shared/types'
 import type { CloudPublishResult, CloudSettings, CloudStatus, PhotoboothEvent } from '@shared/types'
 import {
-  copyToExportFolder,
   eventCompletedDir,
   eventDir,
   eventFile,
@@ -169,9 +167,9 @@ async function chooseFolder(cloud: CloudSettings, event: PhotoboothEvent | null,
 }
 
 /**
- * Gives a finished session its permanent link (and saves its QR code to the
- * save location) and queues the upload. Returns right away — the page the QR
- * opens says "on its way" until the files land. Null when online sharing is off.
+ * Gives a finished session its permanent link and queues the upload. Returns
+ * right away — the page the QR opens says "on its way" until the files land.
+ * Null when online sharing is off.
  */
 export async function publishSession(eventId: string, sessionId: string): Promise<CloudPublishResult | null> {
   const { cloud } = await readSettings()
@@ -206,7 +204,6 @@ export async function publishSession(eventId: string, sessionId: string): Promis
   })
 
   const sessionUrl = state.sessions[sessionId].url
-  saveQrToExportFolder(eventId, sessionId, sessionUrl)
   enqueue({ eventId, sessionId })
   return { sessionUrl, albumUrl: albumPageUrl(state.publicUrl, state.folder as string) }
 }
@@ -218,12 +215,6 @@ async function sessionCreatedAt(eventId: string, sessionId: string): Promise<str
   } catch {
     return new Date().toISOString()
   }
-}
-
-function saveQrToExportFolder(eventId: string, sessionId: string, url: string): void {
-  QRCode.toBuffer(url, { width: 600, margin: 2 })
-    .then((png) => copyToExportFolder(eventId, sessionId, 'QR Codes', '', 'png', png))
-    .catch((err) => console.warn('Could not save the QR code:', err))
 }
 
 /** The event's album page, or null if online sharing is off. */

@@ -1202,6 +1202,17 @@ input[type='color']::-webkit-color-swatch {
   font-size: 12px;
   color: var(--color-ink-muted);
 }
+.gallery-card .meta-qr {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 4px;
+}
+.gallery-card .meta img.session-qr {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  background: #fff;
+}
 .gallery-select-badge {
   position: absolute;
   top: 8px;
@@ -1242,6 +1253,63 @@ input[type='color']::-webkit-color-swatch {
   flex-wrap: wrap;
   padding-top: 24px;
 }
+/* Reprint dialog: one row per selected photo with its own copies stepper. */
+.modal-box.reprint-box {
+  width: min(580px, 92vw);
+  max-width: 92vw;
+}
+.reprint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 46vh;
+  overflow: auto;
+  margin: 14px 0;
+  padding-right: 2px;
+}
+.reprint-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border: var(--stroke) solid var(--color-ink);
+  border-radius: 14px;
+  background: var(--color-bg);
+}
+.reprint-row img {
+  height: 68px;
+  width: auto;
+  max-width: 76px;
+  object-fit: contain;
+  border: 1.4px solid var(--color-ink);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.reprint-row-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  text-align: left;
+}
+.reprint-row-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}
+.reprint-row .qty-stepper {
+  gap: 10px;
+  flex-shrink: 0;
+}
+.reprint-row .qty-stepper button {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+.reprint-row .qty-stepper span {
+  font-size: 22px;
+  min-width: 26px;
+}
+
 /* Online album link under the Photos / GIFs folders. */
 .album-bar {
   display: flex;
@@ -1388,6 +1456,61 @@ input[type='color']::-webkit-color-swatch {
   border-radius: 4px;
   box-shadow: none;
   cursor: default;
+}
+/* The photo plus, when the guest has an online page, their QR code beside it. */
+.lightbox-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  max-width: 100%;
+  min-width: 0;
+}
+.lightbox-stage > img {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  max-height: calc(100vh - 104px);
+}
+.lightbox-qr {
+  flex: 0 0 auto;
+  width: 212px;
+  padding: 14px 14px 10px;
+  box-sizing: border-box;
+  text-align: center;
+  background: var(--color-surface);
+  border: var(--stroke) solid var(--color-ink);
+  border-radius: 18px;
+  cursor: default;
+}
+.lightbox-qr p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--color-ink-muted);
+}
+.lightbox .lightbox-qr img {
+  display: block;
+  width: 176px;
+  height: 176px;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+}
+.lightbox-stage:has(.lightbox-qr) > img {
+  max-width: calc(100vw - 64px - 28px - 212px);
+}
+@media (max-width: 760px) {
+  .lightbox-stage {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .lightbox-stage:has(.lightbox-qr) > img {
+    max-width: 100%;
+    max-height: calc(100vh - 104px - 260px);
+  }
 }
 .lightbox-back {
   position: absolute;

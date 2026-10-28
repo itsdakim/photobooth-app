@@ -2,12 +2,48 @@ import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { toFileUrl } from '../lib/fileUrl'
+import { PRINT_DPI, clampPrintQuantity, isStripPaperSize } from '@shared/types'
 import type { CloudStatus, PhotoboothSession } from '@shared/types'
-import { IconCheck, IconChevronLeft, IconFilm, IconImage, IconTrash } from '../components/Icon'
+import { IconCheck, IconChevronLeft, IconFilm, IconImage, IconPrint, IconTrash } from '../components/Icon'
 
 type Folder = 'photos' | 'gifs'
 
 const FOLDER_LABEL: Record<Folder, string> = { photos: 'Photos', gifs: 'GIFs' }
+
+// QR codes are drawn once per link and reused as cards re-render.
+const qrCache = new Map<string, string>()
+
+/** A guest's QR code for their online page, drawn from the link itself. */
+function SessionQr({ url, size }: { url: string; size: number }): JSX.Element | null {
+  const [src, setSrc] = useState<string | null>(qrCache.get(url) ?? null)
+  useEffect(() => {
+    const cached = qrCache.get(url)
+    if (cached) {
+      setSrc(cached)
+      return
+    }
+    let live = true
+    QRCode.toDataURL(url, { width: 360, margin: 1 }).then((dataUrl) => {
+      qrCache.set(url, dataUrl)
+      if (live) setSrc(dataUrl)
+    })
+    return () => {
+      live = false
+    }
+  }, [url])
+  if (!src) return <div style={{ width: size, height: size }} />
+  return <img className="session-qr" src={src} alt="QR code for this guest's photos" width={size} height={size} />
+}
+
+/** Natural size of a saved image, for printing a photo whose template was deleted. */
+function imageSize(path: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    img.onerror = () => reject(new Error('Could not read the photo to print it.'))
+    img.src = toFileUrl(path)
+  })
+}
 
 export default function GalleryScreen(): JSX.Element {
   const setScreen = useAppStore((s) => s.setScreen)
@@ -20,7 +56,17 @@ export default function GalleryScreen(): JSX.Element {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [viewing, setViewing] = useState<{ src: string; alt: string } | null>(null)
+  const [viewing, setViewing] = useState<{ src: string; alt: string; qrUrl: string | null } | null>(null)
+  const layouts = useAppStore((s) => s.layouts)
+  const printerName = useAppStore((s) => s.settings.selectedPrinterName)
+
+  // Reprinting: one copies count per selected photo.
+  const [reprintOpen, setReprintOpen] = useState(false)
+  const [copies, setCopies] = useState<Record<string, number>>({})
+  const [printing, setPrinting] = useState(false)
+  // Photos already sent in this dialog, so retrying after a failure doesn't print them twice.
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set())
+  const [reprintResult, setReprintResult] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
 
   const event = events.find((e) => e.id === viewingEventId)
 
@@ -114,7 +160,97 @@ export default function GalleryScreen(): JSX.Element {
       return
     }
     const path = folder === 'gifs' ? s.gifPath : s.composedImagePath
-    if (path) setViewing({ src: toFileUrl(path), alt: `${s.eventName} — ${new Date(s.createdAt).toLocaleString()}` })
+    if (path) {
+      setViewing({
+        src: toFileUrl(path),
+        alt: `${s.eventName} — ${new Date(s.createdAt).toLocaleString()}`,
+        qrUrl: s.shareUrl ?? null
+      })
+    }
+  }
+
+  // Strips print two-up and get cut apart, so their copies stay even (as on Print & Share).
+  function paperOf(s: PhotoboothSession): string {
+    return layouts.find((l) => l.id === s.layoutId)?.paperSizeId ?? ''
+  }
+
+  const selectedPhotos = photoSessions.filter((s) => selectedIds.has(s.id))
+
+  function openReprint(): void {
+    const initial: Record<string, number> = {}
+    for (const s of selectedPhotos) initial[s.id] = isStripPaperSize(paperOf(s)) ? 2 : 1
+    setCopies(initial)
+    setSentIds(new Set())
+    setReprintResult(null)
+    setReprintOpen(true)
+  }
+
+  const pendingPhotos = selectedPhotos.filter((s) => !sentIds.has(s.id))
+  const pendingCopies = pendingPhotos.reduce((n, s) => n + (copies[s.id] ?? 1), 0)
+
+  function stepCopies(s: PhotoboothSession, direction: 1 | -1): void {
+    const paper = paperOf(s)
+    const step = isStripPaperSize(paper) ? 2 : 1
+    setCopies((prev) => ({ ...prev, [s.id]: clampPrintQuantity((prev[s.id] ?? step) + direction * step, paper) }))
+  }
+
+  async function sendReprints(): Promise<void> {
+    if (!viewingEventId || !printerName) return
+    setPrinting(true)
+    setReprintResult(null)
+    let sent = 0
+    let photos = 0
+    const problems: string[] = []
+    const nowSent = new Set(sentIds)
+    for (const s of pendingPhotos) {
+      const count = copies[s.id] ?? 1
+      try {
+        const layout = layouts.find((l) => l.id === s.layoutId)
+        const size = layout
+          ? { width: layout.canvasWidth, height: layout.canvasHeight }
+          : await imageSize(s.composedImagePath as string)
+        const result = await window.api.printImage({
+          imagePath: s.composedImagePath as string,
+          printerName,
+          widthIn: size.width / PRINT_DPI,
+          heightIn: size.height / PRINT_DPI,
+          copies: count
+        })
+        if (result.success) {
+          await window.api.addPrintCount(viewingEventId, s.id, count)
+          sent += count
+          photos += 1
+          nowSent.add(s.id)
+        } else {
+          problems.push(`${new Date(s.createdAt).toLocaleString()}: ${result.error ?? 'unknown error'}`)
+        }
+      } catch (err) {
+        problems.push(`${new Date(s.createdAt).toLocaleString()}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+    setSentIds(nowSent)
+    setPrinting(false)
+    refresh()
+    if (problems.length === 0) {
+      setReprintResult({
+        kind: 'success',
+        text: `Sent ${sent} ${sent === 1 ? 'copy' : 'copies'} of ${photos} ${photos === 1 ? 'photo' : 'photos'} to the printer.`
+      })
+    } else {
+      setReprintResult({
+        kind: 'error',
+        text: `${sent > 0 ? `Sent ${sent} ${sent === 1 ? 'copy' : 'copies'}, but ` : ''}${problems.length} could not print — ${problems.join('; ')}`
+      })
+    }
+  }
+
+  function closeReprint(): void {
+    const done = reprintResult?.kind === 'success'
+    setReprintOpen(false)
+    if (done) {
+      setSelectedIds(new Set())
+      setSelectMode(false)
+    }
   }
 
   async function confirmDelete(): Promise<void> {
@@ -146,6 +282,12 @@ export default function GalleryScreen(): JSX.Element {
         </button>
         <h2>{title}</h2>
         <div style={{ display: 'flex', gap: 8, minWidth: 36 }}>
+          {folder === 'photos' && selectMode && selectedIds.size > 0 && (
+            <button className="btn progress" onClick={openReprint}>
+              <IconPrint size={15} />
+              Reprint ({selectedIds.size})
+            </button>
+          )}
           {folder && selectMode && selectedIds.size > 0 && (
             <button className="btn primary" onClick={() => setConfirmOpen(true)}>
               <IconTrash size={15} />
@@ -230,6 +372,11 @@ export default function GalleryScreen(): JSX.Element {
                     <div className="meta">
                       <div>{new Date(s.createdAt).toLocaleString()}</div>
                       {folder === 'photos' && <div>Printed: {s.printCount}</div>}
+                      {s.shareUrl && (
+                        <div className="meta-qr" title="Scan to open this guest's online photos">
+                          <SessionQr url={s.shareUrl} size={72} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -251,7 +398,78 @@ export default function GalleryScreen(): JSX.Element {
           >
             <IconChevronLeft size={18} />
           </button>
-          <img src={viewing.src} alt={viewing.alt} onClick={(e) => e.stopPropagation()} />
+          <div className="lightbox-stage">
+            <img src={viewing.src} alt={viewing.alt} onClick={(e) => e.stopPropagation()} />
+            {viewing.qrUrl && (
+              <div className="lightbox-qr" onClick={(e) => e.stopPropagation()}>
+                <SessionQr url={viewing.qrUrl} size={176} />
+                <p>Scan to open this guest’s photos online</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {reprintOpen && (
+        <div className="modal-overlay">
+          <div className="modal-box reprint-box">
+            <h3>
+              Reprint {selectedPhotos.length} {selectedPhotos.length === 1 ? 'photo' : 'photos'}
+            </h3>
+            <div className="reprint-list">
+              {selectedPhotos.map((s) => {
+                const strip = isStripPaperSize(paperOf(s))
+                const sentAlready = sentIds.has(s.id)
+                return (
+                  <div key={s.id} className="reprint-row">
+                    <img src={toFileUrl(s.composedImagePath as string)} alt="" />
+                    <div className="reprint-row-info">
+                      <div>{new Date(s.createdAt).toLocaleString()}</div>
+                      <div className="reprint-row-sub">
+                        {sentAlready
+                          ? `Sent ✓ ${copies[s.id] ?? 1} ${(copies[s.id] ?? 1) === 1 ? 'copy' : 'copies'}`
+                          : `Printed so far: ${s.printCount}${strip ? ' · strips print in pairs' : ''}`}
+                      </div>
+                    </div>
+                    <div className="qty-stepper">
+                      <button disabled={printing || sentAlready} onClick={() => stepCopies(s, -1)}>
+                        −
+                      </button>
+                      <span>{copies[s.id] ?? 1}</span>
+                      <button disabled={printing || sentAlready} onClick={() => stepCopies(s, 1)}>
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {!printerName && (
+              <p className="status-msg error">No printer selected — choose one in Photobooth Setup first.</p>
+            )}
+            {reprintResult && <p className={`status-msg ${reprintResult.kind}`}>{reprintResult.text}</p>}
+            <div className="modal-actions">
+              {reprintResult?.kind === 'success' ? (
+                <button className="btn primary" onClick={closeReprint}>
+                  Done
+                </button>
+              ) : (
+                <>
+                  <button className="btn secondary" onClick={closeReprint} disabled={printing}>
+                    Cancel
+                  </button>
+                  <button
+                    className="btn primary"
+                    onClick={sendReprints}
+                    disabled={printing || !printerName || pendingPhotos.length === 0}
+                  >
+                    <IconPrint size={15} />
+                    {printing ? 'Printing…' : `Print ${pendingCopies} ${pendingCopies === 1 ? 'copy' : 'copies'}`}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
