@@ -128,7 +128,7 @@ export function eventCompletedDir(eventId: string): string {
   return path.join(eventDir(eventId), 'Completed Photos')
 }
 
-function eventIndividualDir(eventId: string): string {
+export function eventIndividualDir(eventId: string): string {
   return path.join(eventDir(eventId), 'Individual Photos')
 }
 
@@ -144,7 +144,9 @@ export function eventGifsDir(eventId: string): string {
 
 const exportStamps = new Map<string, string>()
 
-function exportStamp(sessionId: string): string {
+/** The time-stamped name a session's files share everywhere they're copied — the
+ *  save location and the online bucket — fixed by the session's first saved file. */
+export function exportStamp(sessionId: string): string {
   let stamp = exportStamps.get(sessionId)
   if (!stamp) {
     const d = new Date()
@@ -164,12 +166,14 @@ export async function copyToExportFolder(
   buffer: Buffer
 ): Promise<void> {
   try {
+    // Set even without a save location, so online uploads can reuse the same name.
+    const stamp = exportStamp(sessionId)
     const { exportFolder } = await readSettings()
     if (!exportFolder) return
     const event = JSON.parse(await fs.readFile(eventFile(eventId), 'utf-8')) as PhotoboothEvent
     const dir = path.join(exportFolder, safeFolderName(event.name), subfolder)
     await ensureDir(dir)
-    await fs.writeFile(path.join(dir, `${exportStamp(sessionId)}${suffix}.${extension}`), buffer)
+    await fs.writeFile(path.join(dir, `${stamp}${suffix}.${extension}`), buffer)
   } catch (err) {
     console.warn('Could not copy to the export folder:', err)
   }

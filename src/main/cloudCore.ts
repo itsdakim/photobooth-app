@@ -1,5 +1,6 @@
 import {
   S3Client,
+  GetObjectCommand,
   PutObjectCommand,
   DeleteObjectCommand,
   GetBucketLifecycleConfigurationCommand,
@@ -10,16 +11,21 @@ import type { LifecycleRule } from '@aws-sdk/client-s3'
 import type { CloudSettings } from '@shared/types'
 
 // Everything that talks to the bucket, kept free of Electron so it can run
-// against any S3-compatible endpoint. Bucket layout:
+// against any S3-compatible endpoint. The bucket mirrors the save location on
+// the computer — one folder per event, named after the event in the app:
 //
-//   v.html                                   the guest/album page (shared by all events)
-//   events/<eventId>/album.json              the event's list of sessions
-//   events/<eventId>/s/<sessionId>/photo.png | animation.gif | thumb.jpg
+//   v.html                               the guest/album page (shared by all events)
+//   <Event Name>/Photos/<stamp>.png      finished prints
+//   <Event Name>/Individual Photos/<stamp>_<n>.jpg
+//   <Event Name>/GIFs/<stamp>.gif
+//   <Event Name>/_thumbs/<stamp>.jpg     small previews for the album grid
+//   <Event Name>/album.json              what the album page reads
 //
-// Everything for an event lives under its own prefix so one lifecycle rule can
+// Everything for an event sits under its own folder so one lifecycle rule can
 // expire the whole event.
 
 export interface AlbumSession {
+  /** the session's time stamp — also its file name and its guest page link */
   id: string
   createdAt: string
   photo: string | null
@@ -31,6 +37,8 @@ export interface AlbumSession {
 export interface AlbumData {
   v: 1
   eventId: string
+  /** the event's folder in the bucket */
+  folder: string
   name: string
   createdAt: string
   /** when the event's files are scheduled to disappear, or null if kept indefinitely */
@@ -39,12 +47,14 @@ export interface AlbumData {
 }
 
 export interface SessionFiles {
-  eventId: string
-  sessionId: string
+  folder: string
+  stamp: string
   createdAt: string
   photo: Buffer | null
   gif: Buffer | null
   thumb: Buffer | null
+  /** each individual shot, numbered the way the save location numbers them */
+  shots: Array<{ n: number; data: Buffer }>
   landscape: boolean
 }
 
@@ -68,21 +78,25 @@ export function normalizePublicUrl(url: string): string {
   return url.trim().replace(/\/+$/, '')
 }
 
-export function sessionPageUrl(publicUrl: string, eventId: string, sessionId: string): string {
-  return `${normalizePublicUrl(publicUrl)}/v.html?e=${encodeURIComponent(eventId)}&s=${encodeURIComponent(sessionId)}`
+/** The page a guest's QR code opens. Folder and stamp are readable, so the link says what it is. */
+export function sessionPageUrl(publicUrl: string, folder: string, stamp: string): string {
+  return `${normalizePublicUrl(publicUrl)}/v.html?f=${encodeURIComponent(folder)}&s=${encodeURIComponent(stamp)}`
 }
 
-export function albumPageUrl(publicUrl: string, eventId: string): string {
-  return `${normalizePublicUrl(publicUrl)}/v.html?e=${encodeURIComponent(eventId)}`
+export function albumPageUrl(publicUrl: string, folder: string): string {
+  return `${normalizePublicUrl(publicUrl)}/v.html?f=${encodeURIComponent(folder)}`
 }
 
-export function eventPrefix(eventId: string): string {
-  return `events/${eventId}/`
+export function folderPrefix(folder: string): string {
+  return `${folder}/`
 }
 
-function sessionKey(eventId: string, sessionId: string, file: string): string {
-  return `${eventPrefix(eventId)}s/${sessionId}/${file}`
-}
+const photoKey = (folder: string, stamp: string): string => `${folder}/Photos/${stamp}.png`
+const gifKey = (folder: string, stamp: string): string => `${folder}/GIFs/${stamp}.gif`
+const thumbKey = (folder: string, stamp: string): string => `${folder}/_thumbs/${stamp}.jpg`
+const shotKey = (folder: string, stamp: string, n: number): string =>
+  `${folder}/Individual Photos/${stamp}_${n}.jpg`
+const albumKey = (folder: string): string => `${folder}/album.json`
 
 async function put(
   s3: S3Client,
@@ -99,9 +113,9 @@ async function put(
 
 /** Uploads one session's files and returns its album entry. Files that don't exist are skipped. */
 export async function uploadSessionFiles(s3: S3Client, bucket: string, files: SessionFiles): Promise<AlbumSession> {
-  const { eventId, sessionId } = files
+  const { folder, stamp } = files
   const entry: AlbumSession = {
-    id: sessionId,
+    id: stamp,
     createdAt: files.createdAt,
     photo: null,
     gif: null,
@@ -109,33 +123,59 @@ export async function uploadSessionFiles(s3: S3Client, bucket: string, files: Se
     landscape: files.landscape
   }
   if (files.photo) {
-    entry.photo = sessionKey(eventId, sessionId, 'photo.png')
+    entry.photo = photoKey(folder, stamp)
     await put(s3, bucket, entry.photo, files.photo, 'image/png', MEDIA_CACHE)
   }
   if (files.thumb) {
-    entry.thumb = sessionKey(eventId, sessionId, 'thumb.jpg')
+    entry.thumb = thumbKey(folder, stamp)
     await put(s3, bucket, entry.thumb, files.thumb, 'image/jpeg', MEDIA_CACHE)
   }
   if (files.gif) {
-    entry.gif = sessionKey(eventId, sessionId, 'animation.gif')
+    entry.gif = gifKey(folder, stamp)
     await put(s3, bucket, entry.gif, files.gif, 'image/gif', MEDIA_CACHE)
+  }
+  for (const shot of files.shots) {
+    await put(s3, bucket, shotKey(folder, stamp, shot.n), shot.data, 'image/jpeg', MEDIA_CACHE)
   }
   return entry
 }
 
 export async function putAlbum(s3: S3Client, bucket: string, album: AlbumData): Promise<void> {
-  await put(
-    s3,
-    bucket,
-    `${eventPrefix(album.eventId)}album.json`,
-    JSON.stringify(album),
-    'application/json; charset=utf-8',
-    NO_CACHE
-  )
+  await put(s3, bucket, albumKey(album.folder), JSON.stringify(album), 'application/json; charset=utf-8', NO_CACHE)
 }
 
 export async function putViewer(s3: S3Client, bucket: string, html: string): Promise<void> {
   await put(s3, bucket, 'v.html', html, 'text/html; charset=utf-8', NO_CACHE)
+}
+
+/**
+ * Picks the event's folder name: its name in the app, or "name 2", "name 3", …
+ * if a different event already uses that folder in the bucket (say, an older
+ * event of the same name that was since deleted from the app). Throws if the
+ * bucket can't be reached — callers fall back to the plain name.
+ */
+export async function claimFolder(
+  s3: S3Client,
+  bucket: string,
+  desired: string,
+  eventId: string,
+  signal?: AbortSignal
+): Promise<string> {
+  for (let n = 1; n < 100; n++) {
+    const candidate = n === 1 ? desired : `${desired} ${n}`
+    let existing: { eventId?: string } | null = null
+    try {
+      const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: albumKey(candidate) }), {
+        abortSignal: signal
+      })
+      existing = JSON.parse((await res.Body?.transformToString()) ?? '{}')
+    } catch (err) {
+      const e = err as { name?: string; $metadata?: { httpStatusCode?: number } }
+      if (e?.name !== 'NoSuchKey' && e?.$metadata?.httpStatusCode !== 404) throw err
+    }
+    if (!existing || existing.eventId === eventId) return candidate
+  }
+  return `${desired} ${eventId.slice(0, 8)}`
 }
 
 function ruleId(eventId: string): string {
@@ -162,14 +202,16 @@ function isMissingLifecycle(err: unknown): boolean {
 }
 
 /**
- * Makes the event's files expire `days` days after upload, or removes the rule
+ * Makes the event's folder expire `days` days after upload, or removes the rule
  * when `days` is null (kept indefinitely). The lifecycle API replaces the whole
- * configuration, so other events' rules are read back and kept.
+ * configuration, so other events' rules are read back and kept. A rule is
+ * identified by the event, so calling this again with a different folder moves it.
  */
 export async function applyRetention(
   s3: S3Client,
   bucket: string,
   eventId: string,
+  folder: string,
   days: number | null
 ): Promise<void> {
   const id = ruleId(eventId)
@@ -180,7 +222,7 @@ export async function applyRetention(
 
   const next: LifecycleRule[] = [...others]
   if (days !== null) {
-    next.push({ ID: id, Status: 'Enabled', Filter: { Prefix: eventPrefix(eventId) }, Expiration: { Days: days } })
+    next.push({ ID: id, Status: 'Enabled', Filter: { Prefix: folderPrefix(folder) }, Expiration: { Days: days } })
   }
   if (next.length === 0) {
     await s3.send(new DeleteBucketLifecycleCommand({ Bucket: bucket }))

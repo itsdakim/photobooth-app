@@ -3,8 +3,10 @@
  * the bucket root as v.html and reads each event's album.json, so every event
  * (and its expiry) is handled by data, not by extra pages:
  *
- *   v.html?e=<eventId>&s=<sessionId>   a guest's own photo + GIF, with a link to the album
- *   v.html?e=<eventId>                 everyone's photos from the event
+ *   v.html?f=<Event Name>&s=<stamp>    a guest's own photo + GIF, with a link to the album
+ *   v.html?f=<Event Name>              everyone's photos from the event
+ *
+ * (Older links used ?e=<eventId> and events/<eventId>/album.json; they still work.)
  *
  * Plain HTML/CSS/JS with no libraries so it stays small and works from any host.
  * Note: no backticks or dollar-brace sequences in the script, so it can sit in
@@ -12,7 +14,7 @@
  */
 
 /** Bump when the page changes so the app re-uploads it. */
-export const VIEWER_VERSION = 1
+export const VIEWER_VERSION = 2
 
 export const VIEWER_HTML = `<!doctype html>
 <html lang="en">
@@ -49,8 +51,14 @@ export const VIEWER_HTML = `<!doctype html>
   var app = document.getElementById('app');
   var params = new URLSearchParams(location.search);
   var ID = /^[A-Za-z0-9_-]{1,64}$/;
-  var eventId = params.get('e') || '';
+  var STAMP = /^[A-Za-z0-9_.-]{1,64}$/;
+  var folder = params.get('f') || '';
+  var legacyId = params.get('e') || '';
   var sessionId = params.get('s') || '';
+  // Identifies the event in links: ?f=<folder> now, ?e=<id> on older links.
+  var linkKey = folder ? 'f' : 'e';
+  var linkValue = folder || legacyId;
+  var albumPath = folder ? folder + '/album.json' : 'events/' + legacyId + '/album.json';
   var tries = 0;
   var timer = null;
 
@@ -89,15 +97,22 @@ export const VIEWER_HTML = `<!doctype html>
     card.appendChild(a);
     return card;
   }
-  function url(path) { return new URL(path, location.href).toString(); }
+  // Keys can contain spaces and other characters, so encode each part of the path.
+  function url(path) {
+    return new URL(path.split('/').map(encodeURIComponent).join('/'), location.href).toString();
+  }
+  function pageLink(id) {
+    return '?' + linkKey + '=' + encodeURIComponent(linkValue) + (id ? '&s=' + encodeURIComponent(id) : '');
+  }
 
   function showSession(album, item) {
     clear();
     header(album, album.name || 'Your Photos', 'Thanks for celebrating with us!');
-    if (item.photo) app.appendChild(mediaCard('Your photo', url(item.photo), 'photo.png', 'Download photo'));
-    if (item.gif) app.appendChild(mediaCard('Your GIF', url(item.gif), 'animation.gif', 'Download GIF'));
+    var base = (album.name || 'photo') + ' ' + item.id;
+    if (item.photo) app.appendChild(mediaCard('Your photo', url(item.photo), base + '.png', 'Download photo'));
+    if (item.gif) app.appendChild(mediaCard('Your GIF', url(item.gif), base + '.gif', 'Download GIF'));
     app.appendChild(el('p', 'hint', 'On a phone you can also press and hold a picture to save it.'));
-    app.appendChild(link('?e=' + encodeURIComponent(eventId), 'See the full album', 'alt'));
+    app.appendChild(link(pageLink(''), 'See the full album', 'alt'));
     var note = expiryNote(album);
     if (note) app.appendChild(el('p', 'hint', note));
   }
@@ -112,7 +127,7 @@ export const VIEWER_HTML = `<!doctype html>
     var grid = el('div', 'grid');
     items.forEach(function (it) {
       var a = el('a', 'tile' + (it.landscape ? ' land' : ''));
-      a.href = '?e=' + encodeURIComponent(eventId) + '&s=' + encodeURIComponent(it.id);
+      a.href = pageLink(it.id);
       var img = el('img');
       img.loading = 'lazy';
       img.alt = 'Photo';
@@ -125,11 +140,13 @@ export const VIEWER_HTML = `<!doctype html>
   }
 
   function load() {
-    if (!ID.test(eventId) || (sessionId && !ID.test(sessionId))) {
+    var folderOk = folder && folder.length <= 200 && folder.indexOf('/') < 0 &&
+      folder.indexOf(String.fromCharCode(92)) < 0 && folder !== '..' && folder !== '.';
+    if ((!folderOk && !ID.test(legacyId)) || (sessionId && !STAMP.test(sessionId))) {
       message('This link does not look right. Please scan the QR code again.');
       return;
     }
-    fetch(url('events/' + eventId + '/album.json'), { cache: 'no-store' })
+    fetch(url(albumPath), { cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('missing'); return r.json(); })
       .then(function (album) {
         if (!sessionId) { showAlbum(album); return; }
