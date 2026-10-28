@@ -4,6 +4,7 @@ import { useAppStore } from '../state/useAppStore'
 import LayoutThumb from '../components/LayoutThumb'
 import { createBlankLayout } from '../lib/defaultLayouts'
 import { IconChevronLeft, IconCopy, IconEdit, IconPlus, IconTrash } from '../components/Icon'
+import { eventLayoutIds } from '@shared/types'
 import type { LayoutTemplate } from '@shared/types'
 
 const PREVIEW_W = 200
@@ -57,7 +58,7 @@ export default function TemplatesScreen(): JSX.Element {
     setPendingDelete(null)
   }
 
-  const eventsUsingPending = pendingDelete ? events.filter((e) => e.layoutId === pendingDelete.id) : []
+  const eventsUsingPending = pendingDelete ? events.filter((e) => eventLayoutIds(e).includes(pendingDelete.id)) : []
 
   return (
     <div className="screen">

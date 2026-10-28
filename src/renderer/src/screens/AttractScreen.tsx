@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
 import { useAppStore } from '../state/useAppStore'
+import { eventLayouts } from '@shared/types'
 import { IconHome } from '../components/Icon'
 import { DoodleFlower, DoodleHeart, DoodleSparkle, DoodleSquiggle, DoodleStar } from '../components/Doodles'
 
 export default function AttractScreen(): JSX.Element {
   const activeEvent = useAppStore((s) => s.activeEvent)
   const activeLayout = useAppStore((s) => s.activeLayout)
+  const layouts = useAppStore((s) => s.layouts)
   const setScreen = useAppStore((s) => s.setScreen)
 
   useEffect(() => {
@@ -13,6 +15,10 @@ export default function AttractScreen(): JSX.Element {
   }, [activeEvent, setScreen])
 
   if (!activeEvent) return <div className="screen attract" />
+
+  // Events with several templates let the guest pick one after pressing Start.
+  const offeredCount = eventLayouts(activeEvent, layouts).length
+  const choosesTemplate = offeredCount > 1
 
   return (
     <div className="screen attract">
@@ -28,14 +34,16 @@ export default function AttractScreen(): JSX.Element {
       <div className="attract-center">
         <h1>Ready?</h1>
         <p>Tap start to begin your photo experience</p>
-        <button className="btn primary tap-btn" onClick={() => setScreen('capture')}>
+        <button className="btn primary tap-btn" onClick={() => setScreen(choosesTemplate ? 'templateSelect' : 'capture')}>
           Start
         </button>
       </div>
 
       <div className="attract-footer">
         <span>
-          {activeLayout ? activeLayout.name : 'Photobooth'} · {activeEvent.printQuantity}x prints
+          {choosesTemplate
+            ? `${offeredCount} templates to choose from`
+            : `${activeLayout ? activeLayout.name : 'Photobooth'} · ${activeEvent.printQuantity}x prints`}
         </span>
         <span className="dot" />
         <span>{activeEvent.name}</span>

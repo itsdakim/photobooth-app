@@ -7,6 +7,7 @@ export type Screen =
   | 'eventList'
   | 'eventSetup'
   | 'attract'
+  | 'templateSelect'
   | 'capture'
   | 'photoSelection'
   | 'review'

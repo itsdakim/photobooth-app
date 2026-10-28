@@ -35,6 +35,7 @@ export default function EventListScreen(): JSX.Element {
       id: uuid(),
       name: '',
       layoutId: defaultLayout?.id ?? '',
+      layoutIds: defaultLayout ? [defaultLayout.id] : [],
       paperSizeId,
       printQuantity: defaultPrintQuantityForPaperSize(paperSizeId),
       countdownSeconds: settings.countdownSeconds,

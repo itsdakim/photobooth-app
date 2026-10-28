@@ -83,7 +83,12 @@ export interface LayoutTemplate {
 export interface PhotoboothEvent {
   id: string
   name: string
+  /** the template previewed in setup and used when the event offers just one;
+   *  always one of the ids in layoutIds */
   layoutId: string
+  /** every template guests can pick from after pressing Start. Events saved
+   *  before multi-template support won't have it — use eventLayoutIds(). */
+  layoutIds?: string[]
   paperSizeId: string
   printQuantity: number
   countdownSeconds: number
@@ -176,6 +181,21 @@ export function uniqueEventName(name: string, otherNames: string[]): string {
   return `${name} ${n}`
 }
 
+/** The template ids an event offers, falling back to its single layoutId. */
+export function eventLayoutIds(event: Pick<PhotoboothEvent, 'layoutId' | 'layoutIds'>): string[] {
+  return event.layoutIds && event.layoutIds.length > 0 ? event.layoutIds : [event.layoutId]
+}
+
+/** The templates an event offers that still exist, in the order they were ticked. */
+export function eventLayouts(
+  event: Pick<PhotoboothEvent, 'layoutId' | 'layoutIds'>,
+  layouts: LayoutTemplate[]
+): LayoutTemplate[] {
+  return eventLayoutIds(event)
+    .map((id) => layouts.find((l) => l.id === id))
+    .filter((l): l is LayoutTemplate => Boolean(l))
+}
+
 /** Photo strips (2x6) default to 2 copies; every other format defaults to 1. */
 export function defaultPrintQuantityForPaperSize(paperSizeId: string): number {
   return paperSizeId === '2x6' ? 2 : 1
@@ -196,6 +216,32 @@ export function clampPrintQuantity(value: number, paperSizeId: string): number {
     clamped = clamped + 1 <= MAX_PRINT_QUANTITY ? clamped + 1 : clamped - 1
   }
   return clamped
+}
+
+/**
+ * The event as it applies to one session that picked `layout`. Shots and copies
+ * are saved relative to the event's main template, so the guest keeps the same
+ * number of extra shots to choose from, and print copies stay valid for the
+ * chosen paper size (strips must be even).
+ */
+export function eventForLayout(
+  event: PhotoboothEvent,
+  layouts: LayoutTemplate[],
+  layout: LayoutTemplate
+): PhotoboothEvent {
+  const baseSlots = layouts.find((l) => l.id === event.layoutId)?.slots.length ?? layout.slots.length
+  const extraShots = Math.max(0, (event.shotsToCapture ?? baseSlots) - baseSlots)
+  const printQuantity =
+    isStripPaperSize(layout.paperSizeId) === isStripPaperSize(event.paperSizeId)
+      ? clampPrintQuantity(event.printQuantity, layout.paperSizeId)
+      : defaultPrintQuantityForPaperSize(layout.paperSizeId)
+  return {
+    ...event,
+    layoutId: layout.id,
+    paperSizeId: layout.paperSizeId,
+    printQuantity,
+    shotsToCapture: Math.min(20, layout.slots.length + extraShots)
+  }
 }
 
 export interface PrintJobOptions {
