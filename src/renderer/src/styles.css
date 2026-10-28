@@ -1328,6 +1328,8 @@ input[type='color']::-webkit-color-swatch {
 }
 .gallery-folder-preview {
   height: 150px;
+  width: 100%;
+  align-self: stretch;
   border-radius: 14px;
   border: var(--stroke) dashed color-mix(in srgb, var(--color-ink) 45%, transparent);
   display: flex;
@@ -1339,13 +1341,21 @@ input[type='color']::-webkit-color-swatch {
   color: var(--color-ink-faint);
   font-size: 13px;
 }
+/* Whole picture, never cropped: both limits apply with the aspect ratio kept, so
+   a tall strip is height-limited and a wide print is width-limited. */
 .gallery-folder-preview img {
-  height: 100%;
   width: auto;
-  max-width: 48%;
-  object-fit: cover;
+  height: auto;
+  max-height: 100%;
+  max-width: calc(50% - 4px);
+  min-width: 0;
+  flex: 0 1 auto;
+  object-fit: contain;
   border-radius: 8px;
   border: var(--stroke) solid var(--color-ink);
+}
+.gallery-folder-preview img:only-child {
+  max-width: 100%;
 }
 .gallery-folder h3 {
   font-size: 32px;
