@@ -56,6 +56,7 @@ const api = {
   printImage: (options: PrintJobOptions): Promise<import('@shared/types').PrintJobResult> =>
     ipcRenderer.invoke('print:image', options),
 
+  checkInternet: (): Promise<boolean> => ipcRenderer.invoke('net:check'),
   testCloud: (cloud: CloudSettings): Promise<{ ok: boolean; warning?: string; error?: string }> =>
     ipcRenderer.invoke('cloud:test', cloud),
   publishSessionOnline: (eventId: string, sessionId: string): Promise<CloudPublishResult | null> =>

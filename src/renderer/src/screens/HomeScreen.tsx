@@ -16,6 +16,29 @@ export default function HomeScreen(): JSX.Element {
       .catch(() => setCameraReady(false))
   }, [])
 
+  // null while the first check runs. Rechecked every so often, and straight away
+  // when the OS reports the network coming or going.
+  const [online, setOnline] = useState<boolean | null>(null)
+  useEffect(() => {
+    let live = true
+    const check = (): void => {
+      window.api
+        .checkInternet()
+        .then((ok) => live && setOnline(ok))
+        .catch(() => live && setOnline(false))
+    }
+    check()
+    const timer = setInterval(check, 15000)
+    window.addEventListener('online', check)
+    window.addEventListener('offline', check)
+    return () => {
+      live = false
+      clearInterval(timer)
+      window.removeEventListener('online', check)
+      window.removeEventListener('offline', check)
+    }
+  }, [])
+
   const printerReady = Boolean(settings.selectedPrinterName)
 
   return (
@@ -95,6 +118,13 @@ export default function HomeScreen(): JSX.Element {
           <div>
             <div className="caption">Printer</div>
             <div className="value">{printerReady ? settings.selectedPrinterName : 'Not configured'}</div>
+          </div>
+        </div>
+        <div className="status-item">
+          <span className={`status-dot ${online ? '' : 'off'}`} />
+          <div>
+            <div className="caption">Internet</div>
+            <div className="value">{online === null ? 'Checking…' : online ? 'Connected' : 'Offline'}</div>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
+import { ipcMain, BrowserWindow, dialog, net, shell } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
@@ -188,6 +188,19 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
   })
 
   ipcMain.handle('print:image', async (_e, options: PrintJobOptions) => printImage(options))
+
+  // ---- Internet check (Home status) ----
+  // Being on wifi doesn't mean the internet works, so ask a Cloudflare endpoint.
+  ipcMain.handle('net:check', async () => {
+    try {
+      const request = net.fetch('https://www.cloudflare.com/cdn-cgi/trace', { cache: 'no-store' })
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000))
+      const res = await Promise.race([request, timeout])
+      return Boolean(res && res.ok)
+    } catch {
+      return false
+    }
+  })
 
   // ---- Online sharing (Cloudflare R2) ----
   ipcMain.handle('cloud:test', async (_e, cfg: CloudSettings) => testCloudConnection(cfg))
