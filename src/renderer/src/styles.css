@@ -1242,6 +1242,69 @@ input[type='color']::-webkit-color-swatch {
   flex-wrap: wrap;
   padding-top: 24px;
 }
+/* Online album link under the Photos / GIFs folders. */
+.album-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 700px;
+  margin: 28px auto 0;
+  padding: 14px 18px;
+  border: var(--stroke) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.album-bar-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+.album-bar-text span {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.album-bar-text .album-bar-pending {
+  color: var(--color-red, #b3402a);
+  white-space: normal;
+}
+.album-bar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.album-qr-box {
+  text-align: center;
+}
+.album-qr-box img {
+  width: min(320px, 100%);
+  height: auto;
+  border: var(--stroke) solid var(--color-ink);
+  border-radius: 12px;
+  background: #fff;
+}
+.album-qr-box a.btn {
+  text-decoration: none;
+}
+.cloud-steps {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--color-ink-secondary);
+}
+.cloud-steps summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.cloud-steps ol {
+  padding-left: 18px;
+  line-height: 1.5;
+}
 .gallery-folder {
   width: min(320px, 100%);
   background: var(--color-surface);

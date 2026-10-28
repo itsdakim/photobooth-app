@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { toFileUrl } from '../lib/fileUrl'
-import type { PhotoboothSession } from '@shared/types'
+import type { CloudStatus, PhotoboothSession } from '@shared/types'
 import { IconCheck, IconChevronLeft, IconFilm, IconImage, IconTrash } from '../components/Icon'
 
 type Folder = 'photos' | 'gifs'
@@ -29,6 +30,39 @@ export default function GalleryScreen(): JSX.Element {
   }
 
   useEffect(refresh, [viewingEventId])
+
+  // The event's online album, when online sharing is on.
+  const [albumUrl, setAlbumUrl] = useState<string | null>(null)
+  const [albumQr, setAlbumQr] = useState<string | null>(null)
+  const [qrOpen, setQrOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [cloudStatus, setCloudStatus] = useState<CloudStatus | null>(null)
+
+  useEffect(() => {
+    if (!viewingEventId) return
+    window.api.getAlbumUrl(viewingEventId).then(setAlbumUrl)
+    window.api.getCloudStatus().then(setCloudStatus)
+  }, [viewingEventId])
+
+  useEffect(() => {
+    if (!albumUrl) {
+      setAlbumQr(null)
+      return
+    }
+    QRCode.toDataURL(albumUrl, { width: 600, margin: 2 }).then(setAlbumQr)
+  }, [albumUrl])
+
+  async function copyAlbumLink(): Promise<void> {
+    if (!albumUrl) return
+    await navigator.clipboard.writeText(albumUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  async function retryUploads(): Promise<void> {
+    await window.api.retryCloudUploads()
+    setCloudStatus(await window.api.getCloudStatus())
+  }
 
   const photoSessions = sessions.filter((s) => s.composedImagePath)
   const gifSessions = sessions.filter((s) => s.gifPath)
@@ -127,22 +161,54 @@ export default function GalleryScreen(): JSX.Element {
       </div>
       <div className="content">
         {folder === null ? (
-          <div className="gallery-folders">
-            <FolderCard
-              label="Photos"
-              icon={<IconImage size={20} />}
-              sessions={photoSessions}
-              pathOf={(s) => s.composedImagePath}
-              onOpen={() => openFolder('photos')}
-            />
-            <FolderCard
-              label="GIFs"
-              icon={<IconFilm size={20} />}
-              sessions={gifSessions}
-              pathOf={(s) => s.gifPath}
-              onOpen={() => openFolder('gifs')}
-            />
-          </div>
+          <>
+            <div className="gallery-folders">
+              <FolderCard
+                label="Photos"
+                icon={<IconImage size={20} />}
+                sessions={photoSessions}
+                pathOf={(s) => s.composedImagePath}
+                onOpen={() => openFolder('photos')}
+              />
+              <FolderCard
+                label="GIFs"
+                icon={<IconFilm size={20} />}
+                sessions={gifSessions}
+                pathOf={(s) => s.gifPath}
+                onOpen={() => openFolder('gifs')}
+              />
+            </div>
+            {albumUrl && (
+              <div className="album-bar">
+                <div className="album-bar-text">
+                  <strong>Online album</strong>
+                  <span title={albumUrl}>{albumUrl}</span>
+                  {cloudStatus && cloudStatus.pending > 0 && (
+                    <span className="album-bar-pending">
+                      {cloudStatus.pending} waiting to upload
+                      {cloudStatus.lastError ? ` — ${cloudStatus.lastError}` : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="album-bar-actions">
+                  <button className="btn secondary" onClick={copyAlbumLink}>
+                    {copied ? 'Copied!' : 'Copy Link'}
+                  </button>
+                  <button className="btn secondary" onClick={() => window.open(albumUrl)}>
+                    Open
+                  </button>
+                  <button className="btn secondary" onClick={() => setQrOpen(true)} disabled={!albumQr}>
+                    QR Code
+                  </button>
+                  {cloudStatus && cloudStatus.pending > 0 && (
+                    <button className="btn ghost" onClick={retryUploads}>
+                      Retry
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <>
             {shown.length === 0 && <p>No {FOLDER_LABEL[folder].toLowerCase()} yet for this event.</p>}
@@ -186,6 +252,24 @@ export default function GalleryScreen(): JSX.Element {
             <IconChevronLeft size={18} />
           </button>
           <img src={viewing.src} alt={viewing.alt} onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {qrOpen && albumQr && (
+        <div className="modal-overlay" onClick={() => setQrOpen(false)}>
+          <div className="modal-box album-qr-box" onClick={(e) => e.stopPropagation()}>
+            <h3>{event ? `${event.name} album` : 'Event album'}</h3>
+            <img src={albumQr} alt="Album QR code" />
+            <p>Anyone who scans this can see every photo and GIF from the event.</p>
+            <div className="modal-actions">
+              <a className="btn secondary" href={albumQr} download="Album QR.png">
+                Save QR Image
+              </a>
+              <button className="btn primary" onClick={() => setQrOpen(false)}>
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

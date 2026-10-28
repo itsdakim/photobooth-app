@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../state/useAppStore'
-import { defaultPrintQuantityForPaperSize } from '@shared/types'
+import { DEFAULT_KEEP_ONLINE_DAYS, defaultPrintQuantityForPaperSize } from '@shared/types'
 import type { PhotoboothEvent } from '@shared/types'
 import { IconChevronLeft, IconEdit, IconImage, IconPlay, IconPlus, IconTrash } from '../components/Icon'
 
@@ -40,6 +40,7 @@ export default function EventListScreen(): JSX.Element {
       printQuantity: defaultPrintQuantityForPaperSize(paperSizeId),
       countdownSeconds: settings.countdownSeconds,
       shotsToCapture: defaultLayout?.slots.length ?? 1,
+      keepOnlineDays: DEFAULT_KEEP_ONLINE_DAYS,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }

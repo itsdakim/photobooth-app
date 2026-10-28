@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
 import type { AppSettings, LayoutTemplate, PhotoboothEvent, PhotoboothSession } from '@shared/types'
-import { DEFAULT_SETTINGS, safeFolderName } from '@shared/types'
+import { DEFAULT_CLOUD_SETTINGS, DEFAULT_SETTINGS, safeFolderName } from '@shared/types'
 
 function dataRoot(): string {
   return app.getPath('userData')
@@ -40,7 +40,8 @@ export async function initStorage(): Promise<void> {
 export async function readSettings(): Promise<AppSettings> {
   try {
     const raw = await fs.readFile(settingsFile(), 'utf-8')
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+    const saved = JSON.parse(raw)
+    return { ...DEFAULT_SETTINGS, ...saved, cloud: { ...DEFAULT_CLOUD_SETTINGS, ...saved.cloud } }
   } catch {
     return DEFAULT_SETTINGS
   }
@@ -81,11 +82,11 @@ export async function deleteLayout(id: string): Promise<void> {
 // every guest session's photos underneath it, so a whole gig's output stays
 // together on disk.
 
-function eventDir(eventId: string): string {
+export function eventDir(eventId: string): string {
   return path.join(eventsDir(), eventId)
 }
 
-function eventFile(eventId: string): string {
+export function eventFile(eventId: string): string {
   return path.join(eventDir(eventId), 'event.json')
 }
 
@@ -119,11 +120,11 @@ export async function deleteEvent(id: string): Promise<void> {
 // into three sibling folders so a photographer browsing the event folder in
 // Finder/Explorer can go straight to what they want.
 
-function eventSessionsDir(eventId: string): string {
+export function eventSessionsDir(eventId: string): string {
   return path.join(eventDir(eventId), 'sessions')
 }
 
-function eventCompletedDir(eventId: string): string {
+export function eventCompletedDir(eventId: string): string {
   return path.join(eventDir(eventId), 'Completed Photos')
 }
 
@@ -131,7 +132,7 @@ function eventIndividualDir(eventId: string): string {
   return path.join(eventDir(eventId), 'Individual Photos')
 }
 
-function eventGifsDir(eventId: string): string {
+export function eventGifsDir(eventId: string): string {
   return path.join(eventDir(eventId), 'GIFs')
 }
 
@@ -154,10 +155,10 @@ function exportStamp(sessionId: string): string {
   return stamp
 }
 
-async function copyToExportFolder(
+export async function copyToExportFolder(
   eventId: string,
   sessionId: string,
-  subfolder: 'Photos' | 'Individual Photos' | 'GIFs',
+  subfolder: 'Photos' | 'Individual Photos' | 'GIFs' | 'QR Codes',
   suffix: string,
   extension: string,
   buffer: Buffer

@@ -3,6 +3,7 @@ import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { is } from './utils'
 import { registerIpcHandlers } from './ipc'
+import { resumeUploads } from './cloud'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -59,6 +60,8 @@ app.whenReady().then(() => {
   })
 
   registerIpcHandlers(() => mainWindow)
+  // Finish any online uploads left over from a previous run (e.g. no wifi at the venue).
+  void resumeUploads()
 
   createWindow()
 

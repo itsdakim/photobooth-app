@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../state/useAppStore'
 import { composeLayout } from '../lib/compose'
+import { cloudConfigured } from '@shared/types'
 import type { PhotoboothSession } from '@shared/types'
 import { IconChevronRight, IconHome } from '../components/Icon'
 import StepTracker from '../components/StepTracker'
@@ -110,8 +111,8 @@ export default function ReviewScreen(): JSX.Element {
                 screen.
               </p>
               <p>
-                {settings.shareServerEnabled
-                  ? 'Your GIF and a QR code to download your photos are made for you automatically.'
+                {settings.shareServerEnabled || cloudConfigured(settings.cloud)
+                  ?'Your GIF and a QR code to download your photos are made for you automatically.'
                   : 'Your GIF is made automatically. QR sharing is turned off for this booth.'}
               </p>
             </div>

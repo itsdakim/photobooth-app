@@ -96,8 +96,27 @@ export interface PhotoboothEvent {
    *  layout's slot count. Extra shots let the guest pick their favorites
    *  and assign them to slots instead of auto-filling in capture order. */
   shotsToCapture: number
+  /** how many days this event's online photos and album stay available after
+   *  upload; null keeps them indefinitely. Events saved before online sharing
+   *  existed don't have it — use eventKeepOnlineDays(). */
+  keepOnlineDays?: number | null
   createdAt: string
   updatedAt: string
+}
+
+/** Used for events that haven't picked how long to keep their photos online. */
+export const DEFAULT_KEEP_ONLINE_DAYS = 365
+
+export const KEEP_ONLINE_OPTIONS: Array<{ days: number | null; label: string }> = [
+  { days: 30, label: '1 month' },
+  { days: 90, label: '3 months' },
+  { days: 180, label: '6 months' },
+  { days: 365, label: '1 year' },
+  { days: null, label: 'Indefinitely' }
+]
+
+export function eventKeepOnlineDays(event: Pick<PhotoboothEvent, 'keepOnlineDays'>): number | null {
+  return event.keepOnlineDays === undefined ? DEFAULT_KEEP_ONLINE_DAYS : event.keepOnlineDays
 }
 
 export interface PhotoboothSession {
@@ -122,6 +141,56 @@ export interface PrinterInfo {
   isDefault: boolean
 }
 
+/** Cloudflare R2 (S3-compatible) storage that guest photos are uploaded to so
+ *  their QR codes keep working after the event. */
+export interface CloudSettings {
+  enabled: boolean
+  accountId: string
+  bucket: string
+  accessKeyId: string
+  secretAccessKey: string
+  /** public address of the bucket, e.g. https://pub-xxxx.r2.dev or a custom domain */
+  publicUrl: string
+}
+
+export const DEFAULT_CLOUD_SETTINGS: CloudSettings = {
+  enabled: false,
+  accountId: '',
+  bucket: '',
+  accessKeyId: '',
+  secretAccessKey: '',
+  publicUrl: ''
+}
+
+/** Online sharing only runs once every field is filled in and it's switched on. */
+export function cloudConfigured(cloud: CloudSettings | undefined): cloud is CloudSettings {
+  return Boolean(
+    cloud &&
+      cloud.enabled &&
+      cloud.accountId.trim() &&
+      cloud.bucket.trim() &&
+      cloud.accessKeyId.trim() &&
+      cloud.secretAccessKey.trim() &&
+      cloud.publicUrl.trim()
+  )
+}
+
+export interface CloudPublishResult {
+  /** the page this guest's QR code opens */
+  sessionUrl: string
+  /** the page listing every guest's photos from the event */
+  albumUrl: string
+}
+
+export interface CloudStatus {
+  configured: boolean
+  /** sessions still waiting to upload (offline, or a failed attempt being retried) */
+  pending: number
+  lastError: string | null
+  /** uploads work but something optional doesn't (e.g. auto-delete timing couldn't be set) */
+  warning: string | null
+}
+
 export interface AppSettings {
   /** the photobooth operator's own business name, shown on the Home screen */
   businessName: string
@@ -137,6 +206,7 @@ export interface AppSettings {
   /** optional folder on this computer that also receives a copy of every
    *  finished photo and GIF, organized as <folder>/<event name>/Photos|GIFs */
   exportFolder: string | null
+  cloud: CloudSettings
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -149,7 +219,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   cameraDeviceId: null,
   shareServerEnabled: true,
   shareServerPort: 8850,
-  exportFolder: null
+  exportFolder: null,
+  cloud: DEFAULT_CLOUD_SETTINGS
 }
 
 /** The folder name an event gets on disk: its name minus characters Windows and

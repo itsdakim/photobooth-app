@@ -23,8 +23,18 @@ import {
 } from './storage'
 import { listPrinters, printImage } from './printer'
 import { startShareServer, stopShareServer, getLocalNetworkUrl } from './shareServer'
+import {
+  albumUrlFor,
+  cloudStatus,
+  publishSession,
+  resumeUploads,
+  retryNow,
+  syncEvent,
+  testCloudConnection
+} from './cloud'
 import type {
   AppSettings,
+  CloudSettings,
   LayoutTemplate,
   PhotoboothEvent,
   PhotoboothSession,
@@ -48,6 +58,8 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
   ipcMain.handle('settings:get', async () => readSettings())
   ipcMain.handle('settings:set', async (_e, settings: AppSettings) => {
     await writeSettings(settings)
+    // Anything that couldn't upload before (online sharing wasn't set up yet) can go now.
+    void resumeUploads()
     return true
   })
 
@@ -82,6 +94,8 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
   ipcMain.handle('events:list', async () => listEvents())
   ipcMain.handle('events:save', async (_e, event: PhotoboothEvent) => {
     await saveEvent(event)
+    // Keeps an already-uploaded event's album title and keep-online timing current.
+    void syncEvent(event.id)
     return true
   })
   ipcMain.handle('events:delete', async (_e, id: string) => {
@@ -168,6 +182,18 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
   })
 
   ipcMain.handle('print:image', async (_e, options: PrintJobOptions) => printImage(options))
+
+  // ---- Online sharing (Cloudflare R2) ----
+  ipcMain.handle('cloud:test', async (_e, cfg: CloudSettings) => testCloudConnection(cfg))
+  ipcMain.handle('cloud:publishSession', async (_e, eventId: string, sessionId: string) =>
+    publishSession(eventId, sessionId)
+  )
+  ipcMain.handle('cloud:albumUrl', async (_e, eventId: string) => albumUrlFor(eventId))
+  ipcMain.handle('cloud:status', async () => cloudStatus())
+  ipcMain.handle('cloud:retry', async () => {
+    await retryNow()
+    return true
+  })
 
   // ---- Sharing (local QR download server) ----
   ipcMain.handle('share:start', async (_e, port: number) => {

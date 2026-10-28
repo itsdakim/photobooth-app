@@ -5,7 +5,11 @@ import PrintPreview from '../components/PrintPreview'
 import { createBlankLayout } from '../lib/defaultLayouts'
 import {
   clampPrintQuantity,
+  DEFAULT_KEEP_ONLINE_DAYS,
+  KEEP_ONLINE_OPTIONS,
+  cloudConfigured,
   eventForLayout,
+  eventKeepOnlineDays,
   eventLayoutIds,
   eventNameTaken,
   isStripPaperSize,
@@ -23,6 +27,7 @@ const FALLBACK_EVENT: PhotoboothEvent = {
   printQuantity: 1,
   countdownSeconds: 5,
   shotsToCapture: 1,
+  keepOnlineDays: DEFAULT_KEEP_ONLINE_DAYS,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 }
@@ -37,6 +42,7 @@ export default function EventSetupScreen(): JSX.Element {
   const setEditingLayout = useAppStore((s) => s.setEditingLayout)
   const setEditingEvent = useAppStore((s) => s.setEditingEvent)
   const setScreen = useAppStore((s) => s.setScreen)
+  const cloud = useAppStore((s) => s.settings.cloud)
 
   const [event, setEvent] = useState<PhotoboothEvent>(() => {
     const base = editingEvent ?? FALLBACK_EVENT
@@ -326,6 +332,30 @@ export default function EventSetupScreen(): JSX.Element {
                     setEvent((ev) => ({ ...ev, countdownSeconds: Number(e.target.value) }))
                   }
                 />
+              </div>
+              <div className="field">
+                <label>Keep photos online for</label>
+                <select
+                  value={String(eventKeepOnlineDays(event))}
+                  disabled={!cloudConfigured(cloud)}
+                  onChange={(e) =>
+                    setEvent((ev) => ({
+                      ...ev,
+                      keepOnlineDays: e.target.value === 'null' ? null : Number(e.target.value)
+                    }))
+                  }
+                >
+                  {KEEP_ONLINE_OPTIONS.map((o) => (
+                    <option key={String(o.days)} value={String(o.days)}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+                  {cloudConfigured(cloud)
+                    ? 'How long guests can use their QR code link and the event album. After this the online copies are deleted automatically (your saved copies stay).'
+                    : 'Turn on Online Sharing in Photobooth Setup to give guests links that last.'}
+                </p>
               </div>
               <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
                 Printer and camera are configured once in Photobooth Setup and shared across all events.

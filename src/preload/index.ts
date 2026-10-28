@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AppSettings,
+  CloudPublishResult,
+  CloudSettings,
+  CloudStatus,
   LayoutTemplate,
   PhotoboothEvent,
   PhotoboothSession,
@@ -50,6 +53,14 @@ const api = {
     ipcRenderer.invoke('printers:list'),
   printImage: (options: PrintJobOptions): Promise<import('@shared/types').PrintJobResult> =>
     ipcRenderer.invoke('print:image', options),
+
+  testCloud: (cloud: CloudSettings): Promise<{ ok: boolean; warning?: string; error?: string }> =>
+    ipcRenderer.invoke('cloud:test', cloud),
+  publishSessionOnline: (eventId: string, sessionId: string): Promise<CloudPublishResult | null> =>
+    ipcRenderer.invoke('cloud:publishSession', eventId, sessionId),
+  getAlbumUrl: (eventId: string): Promise<string | null> => ipcRenderer.invoke('cloud:albumUrl', eventId),
+  getCloudStatus: (): Promise<CloudStatus> => ipcRenderer.invoke('cloud:status'),
+  retryCloudUploads: (): Promise<boolean> => ipcRenderer.invoke('cloud:retry'),
 
   startShareServer: (port: number): Promise<string> => ipcRenderer.invoke('share:start', port),
   stopShareServer: (): Promise<boolean> => ipcRenderer.invoke('share:stop')

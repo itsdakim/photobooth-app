@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
 import { buildLayoutGif } from '../lib/gifExport'
-import { PRINT_DPI, clampPrintQuantity, isStripPaperSize } from '@shared/types'
+import { PRINT_DPI, clampPrintQuantity, cloudConfigured, isStripPaperSize } from '@shared/types'
 import { IconChevronLeft, IconCheck, IconHome, IconPrint } from '../components/Icon'
 import StepTracker from '../components/StepTracker'
 import { ScallopFrame } from '../components/Doodles'
@@ -158,7 +158,15 @@ export default function OutputScreen(): JSX.Element {
           console.error('GIF generation failed', err)
         }
 
-        if (settings.shareServerEnabled) {
+        // Online sharing (Cloudflare) gives a link that keeps working after the
+        // event; the same-wifi server below is the fallback when it isn't set up.
+        const online = cloudConfigured(settings.cloud)
+          ? await window.api.publishSessionOnline(activeEvent!.id, currentSessionId!)
+          : null
+        if (online) {
+          setShareUrl(online.sessionUrl)
+          setQrDataUrl(await QRCode.toDataURL(online.sessionUrl, { width: 240, margin: 1 }))
+        } else if (settings.shareServerEnabled) {
           const baseUrl = await window.api.startShareServer(settings.shareServerPort)
           const target = `${baseUrl}/event/${activeEvent!.id}/session/${currentSessionId}`
           setShareUrl(target)
@@ -348,7 +356,8 @@ export default function OutputScreen(): JSX.Element {
                   </div>
                 ) : (
                   !preparingShare &&
-                  !settings.shareServerEnabled && (
+                  !settings.shareServerEnabled &&
+                  !cloudConfigured(settings.cloud) && (
                     <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
                       QR sharing is turned off — enable it in Photobooth Setup.
                     </p>
