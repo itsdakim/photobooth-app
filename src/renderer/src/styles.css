@@ -842,6 +842,7 @@ input[type='color'] {
 .output-layout .preview-frame img {
   box-sizing: content-box; /* JS sizes the photo itself */
   border: 0; /* no white border on this page, unlike Review */
+  transform: none; /* and no tilt */
   max-height: none;
   max-width: none;
   flex-shrink: 0;
