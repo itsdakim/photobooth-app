@@ -1,6 +1,9 @@
 import { toFileUrl } from '../lib/fileUrl'
 import type { LayoutTemplate } from '@shared/types'
 
+/** Matches 2 × var(--stroke) from styles.css, the .layout-thumb border. */
+const THUMB_BORDER_TOTAL = 3.6
+
 /** Renders a scaled-down, non-interactive preview of a layout template:
  *  background, photo slot placeholders, text, and logo images — used for
  *  layout pickers and the event-setup print preview. */
@@ -11,7 +14,9 @@ export default function LayoutThumb({
   layout: LayoutTemplate
   displayHeight?: number
 }): JSX.Element {
-  const scale = displayHeight / layout.canvasHeight
+  // displayHeight is the outer height; the CSS border (--stroke, both sides)
+  // sits outside the content box that the contents are scaled to fill.
+  const scale = (displayHeight - THUMB_BORDER_TOTAL) / layout.canvasHeight
   const displayWidth = layout.canvasWidth * scale
 
   function renderImages(behind: boolean): JSX.Element[] {

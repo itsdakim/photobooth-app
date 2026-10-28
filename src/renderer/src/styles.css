@@ -437,6 +437,11 @@ input[type='color'] {
    Layout thumbnail (used by layout pickers)
    ========================================================================== */
 .layout-thumb {
+  /* The inner area must equal the width/height set by LayoutThumb, since its
+     contents are positioned for exactly that size; with border-box the border
+     shrinks it and the right/bottom edges get clipped. */
+  box-sizing: content-box;
+  flex-shrink: 0;
   background: var(--color-bg);
   border-radius: var(--radius-sm);
   position: relative;
