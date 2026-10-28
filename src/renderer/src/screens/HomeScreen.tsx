@@ -22,8 +22,8 @@ export default function HomeScreen(): JSX.Element {
     <div className="screen home">
       <DoodleSparkle size={34} style={{ top: 30, left: '47%' }} />
       <DoodleSquiggle size={52} style={{ top: 34, left: 'calc(47% + 48px)', transform: 'rotate(-8deg)' }} />
-      <DoodleHeart size={34} style={{ bottom: 44, right: 150, transform: 'rotate(10deg)' }} />
-      <DoodleFlower size={62} style={{ bottom: 34, right: 64 }} />
+      <DoodleHeart className="home-corner" size={34} style={{ bottom: 44, right: 150, transform: 'rotate(10deg)' }} />
+      <DoodleFlower className="home-corner" size={62} style={{ bottom: 34, right: 64 }} />
       <div className="home-topbar">
         <div className={`home-brand ${settings.businessName ? '' : 'placeholder'}`}>
           {settings.businessName || 'Photobooth Name'}
