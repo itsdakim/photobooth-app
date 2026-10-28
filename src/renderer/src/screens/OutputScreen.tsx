@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { useAppStore } from '../state/useAppStore'
-import { buildGif } from '../lib/gifExport'
+import { buildLayoutGif } from '../lib/gifExport'
 import { PRINT_DPI, clampPrintQuantity, isStripPaperSize } from '@shared/types'
 import { IconChevronLeft, IconCheck, IconHome, IconPrint } from '../components/Icon'
 import StepTracker from '../components/StepTracker'
@@ -142,14 +142,20 @@ export default function OutputScreen(): JSX.Element {
 
     async function prepareShare(): Promise<void> {
       try {
-        if (capturedPhotos.length >= 2) {
-          const blob = await buildGif(capturedPhotos, {
-            width: 480,
-            height: Math.round((480 * activeLayout!.canvasHeight) / activeLayout!.canvasWidth),
-            delayMs: 500
+        // One countdown recording per photo slot, following whichever shots the
+        // guest picked. If a recording is missing, that slot holds its still photo.
+        try {
+          const { slotPhotos, shotClips } = useAppStore.getState()
+          const clips = activeLayout!.slots.map((_, i) => {
+            const photo = slotPhotos?.[i] ?? capturedPhotos[i]
+            const clip = shotClips[capturedPhotos.indexOf(photo)]
+            return clip && clip.length > 0 ? clip : photo ? [photo] : []
           })
-          const buffer = await blob.arrayBuffer()
-          await window.api.saveGif(activeEvent!.id, currentSessionId!, buffer)
+          const blob = await buildLayoutGif(activeLayout!, clips)
+          await window.api.saveGif(activeEvent!.id, currentSessionId!, await blob.arrayBuffer())
+        } catch (err) {
+          // A GIF problem shouldn't stop the QR download page from appearing.
+          console.error('GIF generation failed', err)
         }
 
         if (settings.shareServerEnabled) {

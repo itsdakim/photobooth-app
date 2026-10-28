@@ -32,6 +32,9 @@ interface AppState {
   /** data URLs of raw captured photos for the in-progress session, in
    *  capture order — may be more than the layout has slots for */
   capturedPhotos: string[]
+  /** low-res frames recorded during the countdown before each shot, parallel
+   *  to capturedPhotos — the source material for the animated GIF */
+  shotClips: string[][]
   /** data URLs finalized for composition, one per layout slot in slot order.
    *  Set directly from capturedPhotos when the counts match, or by the
    *  guest via the Photo Selection screen when there are extra shots. */
@@ -51,6 +54,7 @@ interface AppState {
   setActiveLayout: (layout: LayoutTemplate | null) => void
   setEditingLayout: (layout: LayoutTemplate | null, returnScreen?: Screen) => void
   addCapturedPhoto: (dataUrl: string) => void
+  addShotClip: (frames: string[]) => void
   resetCapturedPhotos: () => void
   setSlotPhotos: (photos: string[] | null) => void
   setComposedImage: (dataUrl: string | null) => void
@@ -73,6 +77,7 @@ export const useAppStore = create<AppState>((set) => ({
   editingLayout: null,
   layoutEditorReturnScreen: 'templates',
   capturedPhotos: [],
+  shotClips: [],
   slotPhotos: null,
   composedImage: null,
   currentSessionId: null,
@@ -90,13 +95,15 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({ editingLayout, layoutEditorReturnScreen: returnScreen ?? s.layoutEditorReturnScreen })),
   addCapturedPhoto: (dataUrl) =>
     set((s) => ({ capturedPhotos: [...s.capturedPhotos, dataUrl] })),
-  resetCapturedPhotos: () => set({ capturedPhotos: [] }),
+  addShotClip: (frames) => set((s) => ({ shotClips: [...s.shotClips, frames] })),
+  resetCapturedPhotos: () => set({ capturedPhotos: [], shotClips: [] }),
   setSlotPhotos: (slotPhotos) => set({ slotPhotos }),
   setComposedImage: (composedImage) => set({ composedImage }),
   setCurrentSessionId: (currentSessionId) => set({ currentSessionId }),
   resetSession: () =>
     set({
       capturedPhotos: [],
+      shotClips: [],
       slotPhotos: null,
       composedImage: null,
       currentSessionId: null

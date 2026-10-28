@@ -1,7 +1,7 @@
 import type { LayoutTemplate } from '@shared/types'
 import { toFileUrl } from './fileUrl'
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
@@ -11,7 +11,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /** Draws `img` into the rect (x,y,w,h) using object-fit: cover semantics. */
-function drawCover(
+export function drawCover(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   x: number,
@@ -62,50 +62,23 @@ function drawContain(
   ctx.restore()
 }
 
-export async function composeLayout(
-  layout: LayoutTemplate,
-  photoDataUrls: string[]
-): Promise<string> {
-  const canvas = document.createElement('canvas')
-  canvas.width = layout.canvasWidth
-  canvas.height = layout.canvasHeight
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Could not get canvas context')
-
-  // Background
+/** Everything beneath the guest photos: background colour/image and backdrop designs. */
+async function paintBackdrop(ctx: CanvasRenderingContext2D, layout: LayoutTemplate): Promise<void> {
   ctx.fillStyle = layout.backgroundColor
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight)
 
   if (layout.backgroundImage) {
     const bg = await loadImage(toFileUrl(layout.backgroundImage))
-    drawCover(ctx, bg, 0, 0, canvas.width, canvas.height, 0)
-  }
-
-  async function drawDecorativeImages(behind: boolean): Promise<void> {
-    for (const el of layout.imageElements) {
-      if (Boolean(el.behindPhotos) !== behind) continue
-      const img = await loadImage(toFileUrl(el.src))
-      ctx!.save()
-      ctx!.globalAlpha = el.opacity
-      drawContain(ctx!, img, el.x, el.y, el.width, el.height, el.rotation)
-      ctx!.restore()
-    }
+    drawCover(ctx, bg, 0, 0, layout.canvasWidth, layout.canvasHeight, 0)
   }
 
   // Backdrop designs sit beneath the guest photos
-  await drawDecorativeImages(true)
+  await paintDecorativeImages(ctx, layout, true)
+}
 
-  // Photo slots
-  for (let i = 0; i < layout.slots.length; i++) {
-    const slot = layout.slots[i]
-    const photoSrc = photoDataUrls[i]
-    if (!photoSrc) continue
-    const img = await loadImage(photoSrc)
-    drawCover(ctx, img, slot.x, slot.y, slot.width, slot.height, slot.rotation)
-  }
-
-  // Frames, logos and stickers layered above photos
-  await drawDecorativeImages(false)
+/** Everything above the guest photos: frames, logos, stickers, then text. */
+async function paintOverlay(ctx: CanvasRenderingContext2D, layout: LayoutTemplate): Promise<void> {
+  await paintDecorativeImages(ctx, layout, false)
 
   // Text — wrapped inside its box and aligned within it, matching the editor
   for (const t of layout.textElements) {
@@ -122,8 +95,71 @@ export async function composeLayout(
     wrapText(ctx, t.text, anchorX, 0, t.width, t.fontSize * 1.2)
     ctx.restore()
   }
+}
+
+async function paintDecorativeImages(
+  ctx: CanvasRenderingContext2D,
+  layout: LayoutTemplate,
+  behind: boolean
+): Promise<void> {
+  for (const el of layout.imageElements) {
+    if (Boolean(el.behindPhotos) !== behind) continue
+    const img = await loadImage(toFileUrl(el.src))
+    ctx.save()
+    ctx.globalAlpha = el.opacity
+    drawContain(ctx, img, el.x, el.y, el.width, el.height, el.rotation)
+    ctx.restore()
+  }
+}
+
+export async function composeLayout(
+  layout: LayoutTemplate,
+  photoDataUrls: string[]
+): Promise<string> {
+  const canvas = document.createElement('canvas')
+  canvas.width = layout.canvasWidth
+  canvas.height = layout.canvasHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Could not get canvas context')
+
+  await paintBackdrop(ctx, layout)
+
+  // Photo slots
+  for (let i = 0; i < layout.slots.length; i++) {
+    const slot = layout.slots[i]
+    const photoSrc = photoDataUrls[i]
+    if (!photoSrc) continue
+    const img = await loadImage(photoSrc)
+    drawCover(ctx, img, slot.x, slot.y, slot.width, slot.height, slot.rotation)
+  }
+
+  await paintOverlay(ctx, layout)
 
   return canvas.toDataURL('image/png')
+}
+
+/**
+ * Renders the static parts of a layout once, at `scale` of its print size, so
+ * an animation can redraw only the photo slots between them: `base` goes under
+ * the photos, `overlay` (transparent) goes over them.
+ */
+export async function renderLayoutLayers(
+  layout: LayoutTemplate,
+  scale: number
+): Promise<{ base: HTMLCanvasElement; overlay: HTMLCanvasElement }> {
+  const make = async (
+    paint: (ctx: CanvasRenderingContext2D, layout: LayoutTemplate) => Promise<void>
+  ): Promise<HTMLCanvasElement> => {
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(layout.canvasWidth * scale)
+    canvas.height = Math.round(layout.canvasHeight * scale)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not get canvas context')
+    ctx.scale(scale, scale)
+    await paint(ctx, layout)
+    return canvas
+  }
+  return { base: await make(paintBackdrop), overlay: await make(paintOverlay) }
 }
 
 function wrapText(

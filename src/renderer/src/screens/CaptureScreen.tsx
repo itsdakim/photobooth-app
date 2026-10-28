@@ -4,12 +4,17 @@ import { playShutterSound } from '../lib/sound'
 import { IconCamera, IconHome } from '../components/Icon'
 import StepTracker from '../components/StepTracker'
 
+// Countdown recording for the GIF: frame width and spacing (~8 fps).
+const CLIP_FRAME_WIDTH = 640
+const CLIP_FRAME_MS = 125
+
 export default function CaptureScreen(): JSX.Element {
   const activeLayout = useAppStore((s) => s.activeLayout)
   const activeEvent = useAppStore((s) => s.activeEvent)
   const settings = useAppStore((s) => s.settings)
   const capturedPhotos = useAppStore((s) => s.capturedPhotos)
   const addCapturedPhoto = useAppStore((s) => s.addCapturedPhoto)
+  const addShotClip = useAppStore((s) => s.addShotClip)
   const setSlotPhotos = useAppStore((s) => s.setSlotPhotos)
   const resetSession = useAppStore((s) => s.resetSession)
   const setScreen = useAppStore((s) => s.setScreen)
@@ -133,20 +138,51 @@ export default function CaptureScreen(): JSX.Element {
     return canvas.toDataURL('image/jpeg', 0.92)
   }
 
+  // Small mirrored snapshot of the live feed, used to record the countdown
+  // for the animated GIF (the full-size still is captureFrame above).
+  const clipCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  function grabClipFrame(): string | null {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return null
+    const canvas = clipCanvasRef.current ?? (clipCanvasRef.current = document.createElement('canvas'))
+    canvas.width = CLIP_FRAME_WIDTH
+    canvas.height = Math.round((CLIP_FRAME_WIDTH * video.videoHeight) / video.videoWidth)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.translate(canvas.width, 0)
+    ctx.scale(-1, 1)
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.6)
+  }
+
   const runSequence = useCallback(async (): Promise<void> => {
     setRunning(true)
     for (let shot = 0; shot < totalShots; shot++) {
-      for (let c = countdownSeconds; c >= 1; c--) {
-        if (cancelledRef.current) return
-        setCountdown(c)
-        await new Promise((r) => setTimeout(r, 1000))
+      // Record the countdown leading up to this shot; the clip ends on the shot itself.
+      const clip: string[] = []
+      const record = (): void => {
+        const frame = grabClipFrame()
+        if (frame) clip.push(frame)
       }
-      if (cancelledRef.current) return
+      record()
+      const recorder = setInterval(record, CLIP_FRAME_MS)
+      try {
+        for (let c = countdownSeconds; c >= 1; c--) {
+          if (cancelledRef.current) return
+          setCountdown(c)
+          await new Promise((r) => setTimeout(r, 1000))
+        }
+        if (cancelledRef.current) return
+      } finally {
+        clearInterval(recorder)
+      }
       setCountdown(null)
       setFlash(true)
       playShutterSound()
       const dataUrl = captureFrame()
       addCapturedPhoto(dataUrl)
+      record()
+      addShotClip(clip)
       await new Promise((r) => setTimeout(r, 200))
       if (cancelledRef.current) return
       setFlash(false)
