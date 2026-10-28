@@ -55,7 +55,7 @@ export default function OutputScreen(): JSX.Element {
     const side = sideRef.current
     if (!layout || !side) return
     const CARD_CHROME = 2 * 18 + 2 * 2 // padding + stroke on each side
-    const PHOTO_BORDER = 0 // the print is shown with no border added around it
+    const PHOTO_BORDER = 0 // the preview photo has no white border here
     const GROUP_GAP = 36
     const PANEL_MIN_HEIGHT = 380
     const fit = (): void => {
