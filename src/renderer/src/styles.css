@@ -311,6 +311,11 @@ input[type='color'] {
 .exit-btn:hover {
   opacity: 1;
 }
+/* Keep a clear strip along the bottom for the floating home button so it never
+   sits on top of cards or buttons, whatever size the window is. */
+.screen:has(> .exit-btn) > .content {
+  padding-bottom: 72px;
+}
 
 /* ==========================================================================
    Step tracker (guest flow)
