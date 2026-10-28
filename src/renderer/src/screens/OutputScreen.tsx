@@ -26,13 +26,44 @@ export default function OutputScreen(): JSX.Element {
   )
   const [printing, setPrinting] = useState(false)
   const [preparingShare, setPreparingShare] = useState(true)
-  const [gifDataUrl, setGifDataUrl] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [status, setStatus] = useState<{ text: string; kind: 'success' | 'error' } | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(AUTO_RETURN_SECONDS)
   const [showTimeoutPrompt, setShowTimeoutPrompt] = useState(false)
   const [promptSecondsLeft, setPromptSecondsLeft] = useState(PROMPT_TIMEOUT_SECONDS)
+
+  // The preview card hugs the photo: fit the print's aspect ratio into the
+  // space available, then size the card around it (card padding + stroke and
+  // the image's white border are added on top of the photo itself).
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [previewSize, setPreviewSize] = useState<{ imgW: number; imgH: number; frameW: number; frameH: number } | null>(
+    null
+  )
+  const ratio = activeLayout ? activeLayout.canvasWidth / activeLayout.canvasHeight : 2 / 3
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    const CARD_CHROME = 2 * 18 + 2 * 2 // padding + stroke on each side
+    const PHOTO_BORDER = 16 // 8px white border on each side
+    const fit = (): void => {
+      const { width, height } = stage.getBoundingClientRect()
+      const availW = Math.max(width - CARD_CHROME - PHOTO_BORDER, 40)
+      const availH = Math.max(height - CARD_CHROME - PHOTO_BORDER, 40)
+      const imgW = Math.floor(Math.min(availW, availH * ratio))
+      const imgH = Math.floor(imgW / ratio)
+      setPreviewSize({
+        imgW,
+        imgH,
+        frameW: imgW + PHOTO_BORDER + CARD_CHROME,
+        frameH: imgH + PHOTO_BORDER + CARD_CHROME
+      })
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [ratio])
 
   // The QR scales to whatever room the Share box has left on this window, so
   // everything on the page fits without scrolling.
@@ -105,7 +136,6 @@ export default function OutputScreen(): JSX.Element {
           })
           const buffer = await blob.arrayBuffer()
           await window.api.saveGif(activeEvent!.id, currentSessionId!, buffer)
-          setGifDataUrl(URL.createObjectURL(blob))
         }
 
         if (settings.shareServerEnabled) {
@@ -128,7 +158,6 @@ export default function OutputScreen(): JSX.Element {
   useEffect(() => {
     return () => {
       window.api.stopShareServer()
-      if (gifDataUrl) URL.revokeObjectURL(gifDataUrl)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -221,7 +250,20 @@ export default function OutputScreen(): JSX.Element {
       )}
       <div className="content">
         <div className="output-layout">
-          <div className="preview-frame">{composedImage && <img src={composedImage} alt="Composed" />}</div>
+          <div className="output-preview-stage" ref={stageRef}>
+            <div
+              className="preview-frame"
+              style={previewSize ? { width: previewSize.frameW, height: previewSize.frameH } : undefined}
+            >
+              {composedImage && (
+                <img
+                  src={composedImage}
+                  alt="Composed"
+                  style={previewSize ? { width: previewSize.imgW, height: previewSize.imgH } : undefined}
+                />
+              )}
+            </div>
+          </div>
 
           <div className="side-panel output-side">
             <div className="panel-section">
@@ -267,7 +309,6 @@ export default function OutputScreen(): JSX.Element {
               <h3>Share</h3>
               {preparingShare && <p className="status-msg">Preparing your GIF and download link…</p>}
               <div className="share-body">
-                {gifDataUrl && <img className="share-gif" src={gifDataUrl} alt="Session GIF" />}
                 {qrDataUrl ? (
                   <div className="share-qr">
                     <div className="share-qr-slot" ref={qrSlotRef}>
