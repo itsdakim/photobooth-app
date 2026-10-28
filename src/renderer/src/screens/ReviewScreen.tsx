@@ -17,6 +17,12 @@ export default function ReviewScreen(): JSX.Element {
   const setCurrentSessionId = useAppStore((s) => s.setCurrentSessionId)
   const setScreen = useAppStore((s) => s.setScreen)
   const resetSession = useAppStore((s) => s.resetSession)
+  const settings = useAppStore((s) => s.settings)
+
+  // Mirrors the step tracker: favorites only exist when extra shots were taken.
+  // Once the session is saved (guest came back from Print & Share) the picks
+  // are locked in, so re-picking would leave the saved photo out of date.
+  const hasSelect = capturedPhotos.length > (activeLayout?.slots.length ?? 0) && !currentSessionId
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,10 +92,8 @@ export default function ReviewScreen(): JSX.Element {
     <div className="screen">
       <StepTracker current="preview" />
       <div className="topbar">
-        <button className="btn secondary" onClick={retake}>
-          Retake
-        </button>
-        <h2>Review Your Photo</h2>
+        <div style={{ width: 100 }} />
+        <h2>Here&apos;s Your Print!</h2>
         <div style={{ width: 100 }} />
       </div>
       <div className="content">
@@ -98,12 +102,29 @@ export default function ReviewScreen(): JSX.Element {
             {composedImage ? <img src={composedImage} alt="Composed preview" /> : <p>Composing…</p>}
           </div>
           <div className="side-panel">
-            <p>Love it? Continue to choose print quantity, save a digital copy, or make a GIF.</p>
+            <div className="panel-section">
+              <h3>What happens next</h3>
+              <p>
+                {activeEvent?.printQuantity ?? 1} {activeEvent?.printQuantity === 1 ? 'copy' : 'copies'} of{' '}
+                {activeLayout?.name ?? 'your layout'} will be ready to print. You can change the count on the next
+                screen.
+              </p>
+              <p>
+                {settings.shareServerEnabled
+                  ? 'Your GIF and a QR code to download your photos are made for you automatically.'
+                  : 'Your GIF is made automatically. QR sharing is turned off for this booth.'}
+              </p>
+            </div>
             {error && <p className="status-msg error">{error}</p>}
             <button className="btn progress" disabled={!composedImage || busy} onClick={continueToOutput}>
               {busy ? 'Saving…' : 'Continue'}
               {!busy && <IconChevronRight size={16} />}
             </button>
+            {hasSelect && (
+              <button className="btn secondary" onClick={() => setScreen('photoSelection')}>
+                Change Favorites
+              </button>
+            )}
             <button className="btn secondary" onClick={retake}>
               Retake Photos
             </button>
