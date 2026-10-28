@@ -36,32 +36,46 @@ export default function OutputScreen(): JSX.Element {
   // The preview card hugs the photo: fit the print's aspect ratio into the
   // space available, then size the card around it (card padding + stroke and
   // the image's white border are added on top of the photo itself).
-  const stageRef = useRef<HTMLDivElement>(null)
-  const [previewSize, setPreviewSize] = useState<{ imgW: number; imgH: number; frameW: number; frameH: number } | null>(
-    null
-  )
+  // The preview and the side panel form one group, centered in the page. The
+  // preview gets whatever the side panel and gap leave over, so wide prints
+  // (4x6 landscape) and tall strips each scale to fit; the panel is matched
+  // to the card's height so the two line up.
+  const layoutRef = useRef<HTMLDivElement>(null)
+  const sideRef = useRef<HTMLDivElement>(null)
+  const [previewSize, setPreviewSize] = useState<{
+    imgW: number
+    imgH: number
+    frameW: number
+    frameH: number
+    panelH: number
+  } | null>(null)
   const ratio = activeLayout ? activeLayout.canvasWidth / activeLayout.canvasHeight : 2 / 3
   useEffect(() => {
-    const stage = stageRef.current
-    if (!stage) return
+    const layout = layoutRef.current
+    const side = sideRef.current
+    if (!layout || !side) return
     const CARD_CHROME = 2 * 18 + 2 * 2 // padding + stroke on each side
     const PHOTO_BORDER = 16 // 8px white border on each side
+    const GROUP_GAP = 36
+    const PANEL_MIN_HEIGHT = 380
     const fit = (): void => {
-      const { width, height } = stage.getBoundingClientRect()
-      const availW = Math.max(width - CARD_CHROME - PHOTO_BORDER, 40)
+      const { width, height } = layout.getBoundingClientRect()
+      const availW = Math.max(width - side.offsetWidth - GROUP_GAP - CARD_CHROME - PHOTO_BORDER, 40)
       const availH = Math.max(height - CARD_CHROME - PHOTO_BORDER, 40)
       const imgW = Math.floor(Math.min(availW, availH * ratio))
       const imgH = Math.floor(imgW / ratio)
+      const frameH = imgH + PHOTO_BORDER + CARD_CHROME
       setPreviewSize({
         imgW,
         imgH,
         frameW: imgW + PHOTO_BORDER + CARD_CHROME,
-        frameH: imgH + PHOTO_BORDER + CARD_CHROME
+        frameH,
+        panelH: Math.floor(Math.min(height, Math.max(frameH, PANEL_MIN_HEIGHT)))
       })
     }
     fit()
     const observer = new ResizeObserver(fit)
-    observer.observe(stage)
+    observer.observe(layout)
     return () => observer.disconnect()
   }, [ratio])
 
@@ -249,23 +263,25 @@ export default function OutputScreen(): JSX.Element {
         </div>
       )}
       <div className="content">
-        <div className="output-layout">
-          <div className="output-preview-stage" ref={stageRef}>
-            <div
-              className="preview-frame"
-              style={previewSize ? { width: previewSize.frameW, height: previewSize.frameH } : undefined}
-            >
-              {composedImage && (
-                <img
-                  src={composedImage}
-                  alt="Composed"
-                  style={previewSize ? { width: previewSize.imgW, height: previewSize.imgH } : undefined}
-                />
-              )}
-            </div>
+        <div className="output-layout" ref={layoutRef}>
+          <div
+            className="preview-frame"
+            style={previewSize ? { width: previewSize.frameW, height: previewSize.frameH } : undefined}
+          >
+            {composedImage && (
+              <img
+                src={composedImage}
+                alt="Composed"
+                style={previewSize ? { width: previewSize.imgW, height: previewSize.imgH } : undefined}
+              />
+            )}
           </div>
 
-          <div className="side-panel output-side">
+          <div
+            className="side-panel output-side"
+            ref={sideRef}
+            style={previewSize ? { height: previewSize.panelH } : undefined}
+          >
             <div className="panel-section">
               <h3>Print copies</h3>
               <div className="print-row">

@@ -824,21 +824,10 @@ input[type='color'] {
 /* Print & Share fits one screen: the preview takes the full height, the side
    panel stacks a compact print box over a Share box that absorbs the rest. */
 .output-layout {
-  align-items: stretch;
-  gap: 24px;
-  min-height: 0;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-/* The stage is just the room the preview may use; the card inside it is sized
-   in JS to hug the print's aspect ratio. */
-.output-preview-stage {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  display: flex;
   align-items: center;
   justify-content: center;
+  gap: 36px;
+  min-height: 0;
 }
 .output-layout .preview-frame {
   box-sizing: border-box;
@@ -852,9 +841,9 @@ input[type='color'] {
   flex-shrink: 0;
 }
 .side-panel.output-side {
-  width: clamp(300px, 38%, 420px);
+  width: clamp(300px, 32%, 380px);
   flex-shrink: 0;
-  height: 100%;
+  height: 100%; /* replaced by the card's height once measured */
   min-height: 0;
   gap: 14px;
 }
@@ -868,6 +857,9 @@ input[type='color'] {
   gap: 16px;
 }
 .print-row .btn {
+  white-space: nowrap;
+  padding-left: 14px;
+  padding-right: 14px;
   flex: 1;
   min-width: 0;
 }
