@@ -16,7 +16,8 @@ export default function LayoutThumb({
 }): JSX.Element {
   // displayHeight is the outer height; the CSS border (--stroke, both sides)
   // sits outside the content box that the contents are scaled to fill.
-  const scale = (displayHeight - THUMB_BORDER_TOTAL) / layout.canvasHeight
+  const innerHeight = displayHeight - THUMB_BORDER_TOTAL
+  const scale = innerHeight / layout.canvasHeight
   const displayWidth = layout.canvasWidth * scale
 
   function renderImages(behind: boolean): JSX.Element[] {
@@ -46,7 +47,7 @@ export default function LayoutThumb({
       className="layout-thumb"
       style={{
         width: displayWidth,
-        height: displayHeight,
+        height: innerHeight,
         backgroundColor: layout.backgroundColor
       }}
     >
