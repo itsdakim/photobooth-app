@@ -18,6 +18,7 @@ import {
   saveComposedPhoto,
   saveRawPhoto,
   saveGif,
+  deleteGif,
   copyAsset
 } from './storage'
 import { listPrinters, printImage } from './printer'
@@ -120,6 +121,27 @@ export function registerIpcHandlers(getMainWindow: () => BrowserWindow | null): 
     async (_e, eventId: string, sessionId: string, arrayBuffer: ArrayBuffer) =>
       saveGif(eventId, sessionId, Buffer.from(arrayBuffer))
   )
+
+  ipcMain.handle('sessions:deleteGif', async (_e, eventId: string, sessionId: string) => {
+    await deleteGif(eventId, sessionId)
+    return true
+  })
+
+  // ---- Export folder (where finished photos/GIFs are also copied) ----
+  ipcMain.handle('settings:pickExportFolder', async () => {
+    const win = getMainWindow()
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Choose where to save photos and GIFs',
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+  ipcMain.handle('files:openFolder', async (_e, folderPath: string) => {
+    const error = await shell.openPath(folderPath)
+    return error === ''
+  })
 
   ipcMain.handle('sessions:revealInFolder', async (_e, filePath: string) => {
     shell.showItemInFolder(filePath)

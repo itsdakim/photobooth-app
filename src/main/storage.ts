@@ -135,10 +135,57 @@ function eventGifsDir(eventId: string): string {
   return path.join(eventDir(eventId), 'GIFs')
 }
 
+// ---- Optional export folder ----
+// When the operator picks a save location in Photobooth Setup, every finished
+// photo and GIF is also copied to <folder>/<event name>/Photos or /GIFs, so the
+// files are easy to find on disk without opening the app. This is best-effort:
+// a missing/unwritable folder must never break a guest's session.
+
+const exportStamps = new Map<string, string>()
+
+function exportStamp(sessionId: string): string {
+  let stamp = exportStamps.get(sessionId)
+  if (!stamp) {
+    const d = new Date()
+    const p = (n: number): string => String(n).padStart(2, '0')
+    stamp = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`
+    exportStamps.set(sessionId, stamp)
+  }
+  return stamp
+}
+
+function safeFolderName(name: string): string {
+  const cleaned = name
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
+    .trim()
+    .replace(/[. ]+$/, '')
+  return cleaned || 'Untitled Event'
+}
+
+async function copyToExportFolder(
+  eventId: string,
+  sessionId: string,
+  subfolder: 'Photos' | 'GIFs',
+  extension: string,
+  buffer: Buffer
+): Promise<void> {
+  try {
+    const { exportFolder } = await readSettings()
+    if (!exportFolder) return
+    const event = JSON.parse(await fs.readFile(eventFile(eventId), 'utf-8')) as PhotoboothEvent
+    const dir = path.join(exportFolder, safeFolderName(event.name), subfolder)
+    await ensureDir(dir)
+    await fs.writeFile(path.join(dir, `${exportStamp(sessionId)}.${extension}`), buffer)
+  } catch (err) {
+    console.warn('Could not copy to the export folder:', err)
+  }
+}
+
 export async function saveComposedPhoto(eventId: string, sessionId: string, buffer: Buffer): Promise<string> {
   await ensureDir(eventCompletedDir(eventId))
   const filePath = path.join(eventCompletedDir(eventId), `${sessionId}.png`)
   await fs.writeFile(filePath, buffer)
+  await copyToExportFolder(eventId, sessionId, 'Photos', 'png', buffer)
   return filePath
 }
 
@@ -159,7 +206,13 @@ export async function saveGif(eventId: string, sessionId: string, buffer: Buffer
   await ensureDir(eventGifsDir(eventId))
   const filePath = path.join(eventGifsDir(eventId), `${sessionId}.gif`)
   await fs.writeFile(filePath, buffer)
+  await copyToExportFolder(eventId, sessionId, 'GIFs', 'gif', buffer)
   return filePath
+}
+
+/** Removes just the GIF for a session, leaving its photos in place. */
+export async function deleteGif(eventId: string, sessionId: string): Promise<void> {
+  await fs.rm(path.join(eventGifsDir(eventId), `${sessionId}.gif`), { force: true })
 }
 
 export async function listSessions(eventId: string): Promise<PhotoboothSession[]> {
@@ -170,7 +223,11 @@ export async function listSessions(eventId: string): Promise<PhotoboothSession[]
     if (!file.endsWith('.json')) continue
     try {
       const raw = await fs.readFile(path.join(dir, file), 'utf-8')
-      sessions.push(JSON.parse(raw))
+      const session = JSON.parse(raw) as PhotoboothSession
+      // The GIF is written after the session record, so look for it on disk.
+      const gifPath = path.join(eventGifsDir(eventId), `${session.id}.gif`)
+      session.gifPath = (await fs.access(gifPath).then(() => true).catch(() => false)) ? gifPath : null
+      sessions.push(session)
     } catch {
       // skip corrupt file
     }

@@ -37,6 +37,10 @@ const api = {
     ipcRenderer.invoke('sessions:saveComposedPhoto', eventId, sessionId, dataUrl),
   saveGif: (eventId: string, sessionId: string, arrayBuffer: ArrayBuffer): Promise<string> =>
     ipcRenderer.invoke('sessions:saveGif', eventId, sessionId, arrayBuffer),
+  deleteGif: (eventId: string, sessionId: string): Promise<boolean> =>
+    ipcRenderer.invoke('sessions:deleteGif', eventId, sessionId),
+  pickExportFolder: (): Promise<string | null> => ipcRenderer.invoke('settings:pickExportFolder'),
+  openFolder: (folderPath: string): Promise<boolean> => ipcRenderer.invoke('files:openFolder', folderPath),
   revealInFolder: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke('sessions:revealInFolder', filePath),
   exportCopy: (sourcePath: string): Promise<string | null> =>

@@ -1215,6 +1215,109 @@ input[type='color']::-webkit-color-swatch {
   color: #fff;
 }
 
+/* Folder picker row in Photobooth Setup */
+.save-location-path {
+  padding: 10px 14px;
+  border: var(--stroke) solid var(--color-ink);
+  border-radius: 12px;
+  background: var(--color-bg);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Event photo area: folder chooser (Photos / GIFs) */
+.gallery-folders {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 24px;
+}
+.gallery-folder {
+  width: min(320px, 100%);
+  background: var(--color-surface);
+  border: var(--stroke) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  padding: 22px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s var(--ease), transform 0.1s var(--ease);
+}
+.gallery-folder:hover {
+  background: color-mix(in srgb, var(--color-surface) 55%, white);
+}
+.gallery-folder:active {
+  transform: translateY(1px);
+}
+.gallery-folder-preview {
+  height: 150px;
+  border-radius: 14px;
+  border: var(--stroke) dashed color-mix(in srgb, var(--color-ink) 45%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-ink-faint);
+  font-size: 13px;
+}
+.gallery-folder-preview img {
+  height: 100%;
+  width: auto;
+  max-width: 48%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: var(--stroke) solid var(--color-ink);
+}
+.gallery-folder h3 {
+  font-size: 32px;
+  margin: 0;
+}
+.gallery-folder .count {
+  font-size: 13px;
+  color: var(--color-ink-muted);
+  margin-top: -10px;
+}
+
+/* Enlarged photo / GIF viewer: dimmed backdrop, image scales with the window */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(26, 21, 18, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 32px 32px;
+  box-sizing: border-box;
+  cursor: zoom-out;
+}
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: 8px solid #fff;
+  border-radius: 4px;
+  box-shadow: none;
+  cursor: default;
+}
+.lightbox-back {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  background: var(--color-surface) !important;
+  border: var(--stroke) solid var(--color-ink) !important;
+  opacity: 1;
+}
+
 /* Scalloped stamp-edge QR frame — a signature shape for the share panel only. */
 .scallop-frame {
   position: relative;

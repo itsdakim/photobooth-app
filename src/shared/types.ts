@@ -129,6 +129,9 @@ export interface AppSettings {
   cameraDeviceId: string | null
   shareServerEnabled: boolean
   shareServerPort: number
+  /** optional folder on this computer that also receives a copy of every
+   *  finished photo and GIF, organized as <folder>/<event name>/Photos|GIFs */
+  exportFolder: string | null
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -140,7 +143,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   shotsPerSession: 3,
   cameraDeviceId: null,
   shareServerEnabled: true,
-  shareServerPort: 8850
+  shareServerPort: 8850,
+  exportFolder: null
 }
 
 /** Photo strips (2x6) default to 2 copies; every other format defaults to 1. */

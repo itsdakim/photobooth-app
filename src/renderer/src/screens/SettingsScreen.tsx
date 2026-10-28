@@ -27,6 +27,19 @@ export default function SettingsScreen(): JSX.Element {
     setTimeout(() => setSaved(false), 1500)
   }
 
+  // The save location takes effect right away — it's saved on its own rather
+  // than waiting for the Save Settings button, so a session can't be missed.
+  async function saveExportFolder(folder: string | null): Promise<void> {
+    const next = { ...settings, exportFolder: folder }
+    setSettings(next)
+    await persist(next)
+  }
+
+  async function chooseExportFolder(): Promise<void> {
+    const folder = await window.api.pickExportFolder()
+    if (folder) await saveExportFolder(folder)
+  }
+
   function update<K extends keyof typeof settings>(key: K, value: (typeof settings)[K]): void {
     const next = { ...settings, [key]: value }
     setSettings(next)
@@ -143,6 +156,36 @@ export default function SettingsScreen(): JSX.Element {
                 onChange={(e) => update('shareServerPort', Number(e.target.value))}
               />
             </div>
+          </div>
+
+          <div className="panel-section">
+            <h3>Save Location</h3>
+            <div className="field">
+              <label>Save photos &amp; GIFs to</label>
+              <div className="save-location-path" title={settings.exportFolder ?? undefined}>
+                {settings.exportFolder ?? 'Not set — files stay inside the app only'}
+              </div>
+            </div>
+            <div className="row">
+              <button className="btn secondary" onClick={chooseExportFolder}>
+                {settings.exportFolder ? 'Change Folder' : 'Choose Folder'}
+              </button>
+              {settings.exportFolder && (
+                <>
+                  <button className="btn secondary" onClick={() => window.api.openFolder(settings.exportFolder!)}>
+                    Open
+                  </button>
+                  <button className="btn ghost" onClick={() => saveExportFolder(null)}>
+                    Clear
+                  </button>
+                </>
+              )}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
+              Each event gets its own folder named after it, with a <b>Photos</b> folder and a <b>GIFs</b>{' '}
+              folder inside — for example <i>Smith Wedding / Photos</i>. Copies are added as each session
+              finishes.
+            </p>
           </div>
         </div>
 
