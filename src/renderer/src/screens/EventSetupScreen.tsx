@@ -1,9 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAppStore } from '../state/useAppStore'
 import LayoutThumb from '../components/LayoutThumb'
 import PrintPreview from '../components/PrintPreview'
 import { createBlankLayout } from '../lib/defaultLayouts'
-import { clampPrintQuantity, defaultPrintQuantityForPaperSize, isStripPaperSize } from '@shared/types'
+import {
+  clampPrintQuantity,
+  defaultPrintQuantityForPaperSize,
+  eventNameTaken,
+  isStripPaperSize,
+  uniqueEventName
+} from '@shared/types'
 import type { PhotoboothEvent } from '@shared/types'
 import { IconChevronLeft, IconChevronRight, IconPlus, IconSliders } from '../components/Icon'
 
@@ -39,6 +45,8 @@ export default function EventSetupScreen(): JSX.Element {
     return { ...base, shotsToCapture }
   })
   const [saving, setSaving] = useState(false)
+  const [nameConflict, setNameConflict] = useState<{ name: string; suggestion: string } | null>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   const selectedLayout = layouts.find((l) => l.id === event.layoutId) ?? layouts[0] ?? null
   const minShots = selectedLayout?.slots.length ?? 1
@@ -69,13 +77,43 @@ export default function EventSetupScreen(): JSX.Element {
     setScreen('layoutEditor')
   }
 
+  // Every event gets its own folder named after it when a save location is
+  // set, so two events can't share a name. On a clash, ask the operator to
+  // rename or accept the next free "name 2", "name 3", …
   async function startPhotobooth(): Promise<void> {
+    if (!selectedLayout) return
+    const name = event.name.trim() || 'Untitled Event'
+    const others = (await window.api.listEvents()).filter((e) => e.id !== event.id).map((e) => e.name)
+    if (eventNameTaken(name, others)) {
+      setNameConflict({ name, suggestion: uniqueEventName(name, others) })
+      return
+    }
+    await saveAndStart(name)
+  }
+
+  function renameAfterConflict(): void {
+    setNameConflict(null)
+    requestAnimationFrame(() => {
+      nameInputRef.current?.focus()
+      nameInputRef.current?.select()
+    })
+  }
+
+  async function useSuggestedName(): Promise<void> {
+    if (!nameConflict) return
+    const suggestion = nameConflict.suggestion
+    setNameConflict(null)
+    setEvent((ev) => ({ ...ev, name: suggestion }))
+    await saveAndStart(suggestion)
+  }
+
+  async function saveAndStart(name: string): Promise<void> {
     if (!selectedLayout) return
     setSaving(true)
     try {
       const finalEvent: PhotoboothEvent = {
         ...event,
-        name: event.name.trim() || 'Untitled Event',
+        name,
         layoutId: selectedLayout.id,
         paperSizeId: selectedLayout.paperSizeId,
         updatedAt: new Date().toISOString()
@@ -108,6 +146,7 @@ export default function EventSetupScreen(): JSX.Element {
             <div className="panel-section">
               <h3>Event Name</h3>
               <input
+                ref={nameInputRef}
                 autoFocus
                 placeholder="e.g. Smith Wedding"
                 value={event.name}
@@ -243,6 +282,26 @@ export default function EventSetupScreen(): JSX.Element {
           </div>
         </div>
       </div>
+
+      {nameConflict && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Name already used</h3>
+            <p>
+              You already have an event called “{nameConflict.name}”. Each event keeps its photos in its own
+              folder, so names need to be different.
+            </p>
+            <div className="modal-actions">
+              <button className="btn secondary" onClick={renameAfterConflict}>
+                Rename
+              </button>
+              <button className="btn primary" onClick={useSuggestedName}>
+                Save as “{nameConflict.suggestion}”
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

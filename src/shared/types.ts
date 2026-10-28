@@ -147,6 +147,35 @@ export const DEFAULT_SETTINGS: AppSettings = {
   exportFolder: null
 }
 
+/** The folder name an event gets on disk: its name minus characters Windows and
+ *  macOS don't allow in file names. Used for the optional save location. */
+export function safeFolderName(name: string): string {
+  const cleaned = name
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
+    .trim()
+    .replace(/[. ]+$/, '')
+  return cleaned || 'Untitled Event'
+}
+
+/** Folder names compare case-insensitively since Windows and macOS do too. */
+function eventFolderKey(name: string): string {
+  return safeFolderName(name).toLowerCase()
+}
+
+/** True when `name` would land in the same folder as one of `otherNames`. */
+export function eventNameTaken(name: string, otherNames: string[]): boolean {
+  const key = eventFolderKey(name)
+  return otherNames.some((n) => eventFolderKey(n) === key)
+}
+
+/** `name` if it's free, otherwise "name 2", "name 3", … — the first one that is. */
+export function uniqueEventName(name: string, otherNames: string[]): string {
+  if (!eventNameTaken(name, otherNames)) return name
+  let n = 2
+  while (eventNameTaken(`${name} ${n}`, otherNames)) n++
+  return `${name} ${n}`
+}
+
 /** Photo strips (2x6) default to 2 copies; every other format defaults to 1. */
 export function defaultPrintQuantityForPaperSize(paperSizeId: string): number {
   return paperSizeId === '2x6' ? 2 : 1

@@ -182,9 +182,9 @@ export default function SettingsScreen(): JSX.Element {
               )}
             </div>
             <p style={{ fontSize: 12, color: 'var(--color-ink-faint)' }}>
-              Each event gets its own folder named after it, with a <b>Photos</b> folder and a <b>GIFs</b>{' '}
-              folder inside — for example <i>Smith Wedding / Photos</i>. Copies are added as each session
-              finishes.
+              Each event gets its own folder named after it, with a <b>Photos</b> folder (finished prints), an{' '}
+              <b>Individual Photos</b> folder (each shot) and a <b>GIFs</b> folder inside — for example{' '}
+              <i>Smith Wedding / Photos</i>. Copies are added as each session finishes.
             </p>
           </div>
         </div>

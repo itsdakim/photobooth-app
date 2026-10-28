@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
 import type { AppSettings, LayoutTemplate, PhotoboothEvent, PhotoboothSession } from '@shared/types'
-import { DEFAULT_SETTINGS } from '@shared/types'
+import { DEFAULT_SETTINGS, safeFolderName } from '@shared/types'
 
 function dataRoot(): string {
   return app.getPath('userData')
@@ -154,18 +154,11 @@ function exportStamp(sessionId: string): string {
   return stamp
 }
 
-function safeFolderName(name: string): string {
-  const cleaned = name
-    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
-    .trim()
-    .replace(/[. ]+$/, '')
-  return cleaned || 'Untitled Event'
-}
-
 async function copyToExportFolder(
   eventId: string,
   sessionId: string,
-  subfolder: 'Photos' | 'GIFs',
+  subfolder: 'Photos' | 'Individual Photos' | 'GIFs',
+  suffix: string,
   extension: string,
   buffer: Buffer
 ): Promise<void> {
@@ -175,7 +168,7 @@ async function copyToExportFolder(
     const event = JSON.parse(await fs.readFile(eventFile(eventId), 'utf-8')) as PhotoboothEvent
     const dir = path.join(exportFolder, safeFolderName(event.name), subfolder)
     await ensureDir(dir)
-    await fs.writeFile(path.join(dir, `${exportStamp(sessionId)}.${extension}`), buffer)
+    await fs.writeFile(path.join(dir, `${exportStamp(sessionId)}${suffix}.${extension}`), buffer)
   } catch (err) {
     console.warn('Could not copy to the export folder:', err)
   }
@@ -185,7 +178,7 @@ export async function saveComposedPhoto(eventId: string, sessionId: string, buff
   await ensureDir(eventCompletedDir(eventId))
   const filePath = path.join(eventCompletedDir(eventId), `${sessionId}.png`)
   await fs.writeFile(filePath, buffer)
-  await copyToExportFolder(eventId, sessionId, 'Photos', 'png', buffer)
+  await copyToExportFolder(eventId, sessionId, 'Photos', '', 'png', buffer)
   return filePath
 }
 
@@ -199,6 +192,7 @@ export async function saveRawPhoto(
   await ensureDir(dir)
   const filePath = path.join(dir, `photo_${index}.jpg`)
   await fs.writeFile(filePath, buffer)
+  await copyToExportFolder(eventId, sessionId, 'Individual Photos', `_${index}`, 'jpg', buffer)
   return filePath
 }
 
@@ -206,7 +200,7 @@ export async function saveGif(eventId: string, sessionId: string, buffer: Buffer
   await ensureDir(eventGifsDir(eventId))
   const filePath = path.join(eventGifsDir(eventId), `${sessionId}.gif`)
   await fs.writeFile(filePath, buffer)
-  await copyToExportFolder(eventId, sessionId, 'GIFs', 'gif', buffer)
+  await copyToExportFolder(eventId, sessionId, 'GIFs', '', 'gif', buffer)
   return filePath
 }
 
