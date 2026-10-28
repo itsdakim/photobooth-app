@@ -839,11 +839,17 @@ input[type='color'] {
   flex-shrink: 0;
   padding: 18px;
 }
+/* The print shows exactly as it will come out of the printer: no white
+   border, outline, rounding or tilt added around it. JS sizes the image. */
 .output-layout .preview-frame img {
-  box-sizing: content-box; /* JS sizes the photo itself; the white border is extra */
+  box-sizing: content-box;
   max-height: none;
   max-width: none;
   flex-shrink: 0;
+  border: 0;
+  outline: 0;
+  border-radius: 0;
+  transform: none;
 }
 .side-panel.output-side {
   width: clamp(300px, 32%, 380px);
